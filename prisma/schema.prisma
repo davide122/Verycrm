@@ -1,0 +1,58 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Servizio {
+  id            Int      @id @default(autoincrement())
+  nome          String
+  prezzoCliente Float    // Prezzo che paga il cliente
+  costoNetto    Float    // Costo a noi, senza IVA
+  ivaPercent    Float    @default(22)
+
+  operazioni    ServizioEffettuato[]
+}
+
+model ServizioEffettuato {
+  id            Int      @id @default(autoincrement())
+  servizioId    Int
+  quantita      Int
+  prezzoCliente Float
+  costoTotale   Float
+  guadagno      Float
+  turno         String   // mattina / pomeriggio
+  createdAt     DateTime @default(now())
+
+  servizio      Servizio @relation(fields: [servizioId], references: [id])
+}
+
+model Spedizione {
+  id            Int      @id @default(autoincrement())
+  peso          Float
+  pellicola     Boolean  @default(false)
+  imballaggio   Boolean  @default(false)
+  prezzoPoste   Float    // Prezzo base Poste
+  iva           Float
+  rimborsoSpese Float
+  prezzoCliente Float    // Prezzo al cliente
+  guadagno      Float
+  turno         String
+  createdAt     DateTime @default(now())
+}
+
+model Chiusura {
+  id             Int      @id @default(autoincrement())
+  data           DateTime
+  turno          String
+  totaleEntrate  Float
+  totaleCosti    Float
+  totaleGuadagni Float
+  chiuso         Boolean  @default(true)
+}
