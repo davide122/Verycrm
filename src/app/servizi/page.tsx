@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Plus, FileText, TrendingUp, Clock, Star, Zap, Target, Award, Activity, CheckCircle, AlertCircle, Settings } from 'lucide-react'
+import { ArrowLeft, Plus, TrendingUp, Clock, Star, Zap, Target, Award, Activity, CheckCircle, Settings } from 'lucide-react'
 import { formatCurrency, formatDate, getOpzioniServizi, calcolaPrezzoServizio, SERVIZI_DISPONIBILI, PREZZI_SERVIZI } from '@/lib/utils'
 import { useSede } from '@/hooks/useSede'
 
@@ -23,7 +23,7 @@ interface ServizioEffettuato {
 }
 
 export default function ServiziPage() {
-  const { currentSede, saveData, loadData } = useSede()
+  const { saveData, loadData } = useSede()
   const [serviziEffettuati, setServiziEffettuati] = useState<ServizioEffettuato[]>([])
   const [selectedServizio, setSelectedServizio] = useState('')
   const [quantita, setQuantita] = useState('')

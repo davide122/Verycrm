@@ -16,7 +16,7 @@ export default function ImpostazioniPage() {
 
   useEffect(() => {
     caricaImpostazioni()
-  }, [currentSede, loadData])
+  }, [currentSede])
 
   useEffect(() => {
     const isChanged = JSON.stringify(prezziModificati) !== JSON.stringify(PREZZI_SERVIZI)

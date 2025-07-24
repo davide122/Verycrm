@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 
     // Calcola totali servizi
     const totaliServizi = serviziEffettuati.reduce(
-      (acc: { entrate: number; costi: number; guadagni: number; quantita: number }, servizio: any) => {
+      (acc: { entrate: number; costi: number; guadagni: number; quantita: number }, servizio: typeof serviziEffettuati[0]) => {
         acc.entrate += servizio.prezzoCliente
         acc.costi += servizio.costoTotale
         acc.guadagni += servizio.guadagno
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     // Calcola totali spedizioni
     const totaliSpedizioni = spedizioni.reduce(
-      (acc: { entrate: number; costi: number; guadagni: number; quantita: number }, spedizione: any) => {
+      (acc: { entrate: number; costi: number; guadagni: number; quantita: number }, spedizione: typeof spedizioni[0]) => {
         acc.entrate += spedizione.prezzoCliente
         acc.costi += spedizione.rimborsoSpese
         acc.guadagni += spedizione.guadagno

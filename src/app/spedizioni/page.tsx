@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
-import { ArrowLeft, Plus, Package, Truck, Scale, Shield, Zap, TrendingUp, Clock, Star, Target, Award, Activity, CheckCircle, Calculator, Layers, Box, Settings } from 'lucide-react'
+import { ArrowLeft, Plus, Package, Truck, Scale, Shield, TrendingUp, Star, Award, Activity, CheckCircle, Calculator, Layers, Box, Settings } from 'lucide-react'
 import { formatCurrency, formatDate, calcolaPrezzo } from '@/lib/utils'
 import { useSede } from '@/hooks/useSede'
 
@@ -25,7 +25,7 @@ interface Spedizione {
 }
 
 export default function SpedizioniPage() {
-  const { currentSede, saveData, loadData } = useSede()
+  const { saveData, loadData } = useSede()
   const [spedizioni, setSpedizioni] = useState<Spedizione[]>([])
   const [peso, setPeso] = useState('')
   const [pellicola, setPellicola] = useState(false)
@@ -75,7 +75,8 @@ export default function SpedizioniPage() {
 
     setLoading(true)
     try {
-      const turnoCorrente = currentTime && currentTime.getHours() < 14 ? 'mattina' : 'pomeriggio'
+      const now = new Date()
+      const turnoCorrente = now.getHours() < 14 ? 'mattina' : 'pomeriggio'
       
       const nuovaSpedizione: Spedizione = {
         id: Date.now(),

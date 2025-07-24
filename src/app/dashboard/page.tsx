@@ -18,7 +18,7 @@ import {
   Target,
   Clock,
   Euro,
-  Users,
+
   Zap,
   Filter,
   Download,

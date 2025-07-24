@@ -3,13 +3,13 @@
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Package, FileText, BarChart3, Clock, TrendingUp, Users, Calendar, Star, ArrowRight, Zap, Settings, LogOut, MapPin } from 'lucide-react'
+import { Package, FileText, BarChart3, Clock, TrendingUp, Users, Calendar, Star, ArrowRight, Zap, Settings } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { formatCurrency } from '@/lib/utils'
 import { useSede } from '@/hooks/useSede'
 
 export default function Home() {
-  const { currentSede, isLoading, logout, loadData } = useSede()
+  const { currentSede, isLoading, loadData } = useSede()
   const [currentTime, setCurrentTime] = useState<Date | null>(null)
   const [stats, setStats] = useState({ servizi: 0, spedizioni: 0, guadagno: 0, entrate: 0, costi: 0 })
   const [mounted, setMounted] = useState(false)
@@ -76,7 +76,7 @@ export default function Home() {
       const interval = setInterval(loadRealData, 30000)
       return () => clearInterval(interval)
     }
-  }, [mounted, currentSede])
+  }, [mounted, currentSede, loadData])
 
   const currentShift = currentTime && currentTime.getHours() < 14 ? 'Mattina' : 'Pomeriggio'
   const shiftTime = currentTime && currentTime.getHours() < 14 ? '8:30-13:00' : '16:00-19:00'
