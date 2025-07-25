@@ -9,7 +9,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { ArrowLeft, Plus, Package, Truck, Scale, Shield, TrendingUp, Star, Award, Activity, CheckCircle, Calculator, Layers, Box, Settings } from 'lucide-react'
 import { formatCurrency, formatDate, calcolaPrezzo } from '@/lib/utils'
 import { useSede } from '@/hooks/useSede'
-
 interface Spedizione {
   id: number
   peso: number
@@ -21,11 +20,12 @@ interface Spedizione {
   prezzoCliente: number
   guadagno: number
   turno: string
+  sede: string
   createdAt: string
 }
 
 export default function SpedizioniPage() {
-  const { saveData, loadData } = useSede()
+  const { currentSede } = useSede()
   const [spedizioni, setSpedizioni] = useState<Spedizione[]>([])
   const [peso, setPeso] = useState('')
   const [pellicola, setPellicola] = useState(false)
@@ -41,8 +41,10 @@ export default function SpedizioniPage() {
   } | null>(null)
 
   useEffect(() => {
-    fetchSpedizioni()
-  }, [])
+    if (currentSede) {
+      fetchSpedizioni()
+    }
+  }, [currentSede])
 
   useEffect(() => {
     if (peso) {
@@ -60,9 +62,26 @@ export default function SpedizioniPage() {
 
   const fetchSpedizioni = async () => {
     try {
-      // Carica da localStorage usando il hook useSede
-      const spedizioniData = loadData('spedizioni')
-      setSpedizioni(spedizioniData)
+      // Verifica che currentSede sia valido prima di fare la chiamata
+      if (!currentSede?.id) {
+        console.warn('Sede non valida, non carico spedizioni')
+        setSpedizioni([])
+        return
+      }
+
+      const today = new Date().toISOString().split('T')[0]
+      const response = await fetch(`/api/spedizioni?data=${today}&sede=${currentSede.id}`)
+      
+      if (response.ok) {
+        const spedizioniData = await response.json()
+        // Filtraggio aggiuntivo lato client per sicurezza
+        const spedizioniFiltrate = spedizioniData.filter((spedizione: Spedizione) => 
+          spedizione.sede === currentSede.id
+        )
+        setSpedizioni(spedizioniFiltrate)
+      } else {
+        setSpedizioni([])
+      }
     } catch (error) {
       console.error('Errore nel caricamento delle spedizioni:', error)
       setSpedizioni([])
@@ -75,40 +94,33 @@ export default function SpedizioniPage() {
 
     setLoading(true)
     try {
-      const now = new Date()
-      const turnoCorrente = now.getHours() < 14 ? 'mattina' : 'pomeriggio'
-      
-      const nuovaSpedizione: Spedizione = {
-        id: Date.now(),
-        peso: parseFloat(peso),
-        pellicola,
-        imballaggio,
-        prezzoPoste: prezzoCalcolato.poste,
-        iva: prezzoCalcolato.iva,
-        rimborsoSpese: prezzoCalcolato.rimborso,
-        prezzoCliente: prezzoCalcolato.cliente,
-        guadagno: prezzoCalcolato.guadagno,
-        turno: turnoCorrente,
-        createdAt: new Date().toISOString()
-      }
-      
-      const nuoveSpedizioni = [nuovaSpedizione, ...spedizioni]
-      setSpedizioni(nuoveSpedizioni)
-      
-      // Salva usando il hook useSede
-      saveData('spedizioni', nuoveSpedizioni)
-      
-      setPeso('')
-      setPellicola(false)
-      setImballaggio(false)
-      setPrezzoCalcolato(null)
-      
-      // Simula salvataggio
-      setTimeout(() => {
+      const response = await fetch('/api/spedizioni', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          peso: parseFloat(peso),
+          pellicola,
+          imballaggio,
+          sede: currentSede?.id
+        })
+      })
+
+      if (response.ok) {
+        const nuovaSpedizione = await response.json()
+        // Ricarica le spedizioni dal database per assicurare sincronizzazione
+        await fetchSpedizioni()
+        setPeso('')
+        setPellicola(false)
+        setImballaggio(false)
+        setPrezzoCalcolato(null)
         alert(`Spedizione di ${parseFloat(peso)}kg registrata con successo!`)
-      }, 500)
+      } else {
+        throw new Error('Errore nella registrazione della spedizione')
+      }
     } catch (error) {
-      console.error('Errore nell&apos;aggiunta della spedizione:', error)
+      console.error('Errore nell\'aggiunta della spedizione:', error)
       alert('Errore durante la registrazione della spedizione')
     } finally {
       setLoading(false)
@@ -145,7 +157,7 @@ export default function SpedizioniPage() {
     ((totaleGiornata.guadagni / totaleGiornata.entrate) * 100).toFixed(1) : '0'
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50">
+    <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -161,15 +173,23 @@ export default function SpedizioniPage() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-4xl font-black bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                Spedizioni Express
-              </h1>
-              <p className="text-gray-600 mt-1">Sistema avanzato gestione spedizioni</p>
+              <h1 className="text-4xl font-bold text-blue-900">
+              Spedizioni Express
+            </h1>
+              <div className="flex items-center gap-3 mt-1">
+                <p className="text-gray-600">Sistema avanzato gestione spedizioni</p>
+                {currentSede && (
+                  <div className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-medium">
+                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                    <span>📍 {currentSede.nome}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           
-          <div className="hidden md:flex items-center gap-4 bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-3 shadow-lg">
-            <Truck className="w-5 h-5 text-orange-500" />
+          <div className="hidden md:flex items-center gap-4 bg-white rounded-lg px-6 py-3 border border-gray-200">
+            <Truck className="w-5 h-5 text-blue-500" />
             <span className="font-semibold text-gray-800">{currentShift}</span>
             <span className="text-gray-500 text-sm">({shiftTime})</span>
           </div>
@@ -177,50 +197,50 @@ export default function SpedizioniPage() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-green-500 to-emerald-500 text-white border-0 shadow-xl">
+          <Card className="bg-white border border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-100 text-sm font-medium">Entrate Oggi</p>
-                  <p className="text-3xl font-bold">{formatCurrency(totaleGiornata.entrate)}</p>
+                  <p className="text-gray-600 text-sm font-medium">Entrate Oggi</p>
+                  <p className="text-2xl font-bold text-blue-900">{formatCurrency(totaleGiornata.entrate)}</p>
                 </div>
-                <TrendingUp className="w-8 h-8 text-green-200" />
+                <TrendingUp className="w-6 h-6 text-yellow-500" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white border-0 shadow-xl">
+          <Card className="bg-white border border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm font-medium">Guadagno</p>
-                  <p className="text-3xl font-bold">{formatCurrency(totaleGiornata.guadagni)}</p>
+                  <p className="text-gray-600 text-sm font-medium">Guadagno</p>
+                  <p className="text-2xl font-bold text-blue-900">{formatCurrency(totaleGiornata.guadagni)}</p>
                 </div>
-                <Star className="w-8 h-8 text-blue-200" />
+                <Star className="w-6 h-6 text-yellow-500" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-to-br from-purple-500 to-pink-500 text-white border-0 shadow-xl">
+          <Card className="bg-white border border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100 text-sm font-medium">Spedizioni</p>
-                  <p className="text-3xl font-bold">{spedizioni.length}</p>
+                  <p className="text-gray-600 text-sm font-medium">Spedizioni</p>
+                  <p className="text-2xl font-bold text-blue-900">{spedizioni.length}</p>
                 </div>
-                <Package className="w-8 h-8 text-purple-200" />
+                <Package className="w-6 h-6 text-yellow-500" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-to-br from-orange-500 to-red-500 text-white border-0 shadow-xl">
+          <Card className="bg-white border border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-orange-100 text-sm font-medium">Peso Medio</p>
-                  <p className="text-3xl font-bold">{pesoMedio}kg</p>
+                  <p className="text-gray-600 text-sm font-medium">Peso Medio</p>
+                  <p className="text-2xl font-bold text-blue-900">{pesoMedio}kg</p>
                 </div>
-                <Scale className="w-8 h-8 text-orange-200" />
+                <Scale className="w-6 h-6 text-yellow-500" />
               </div>
             </CardContent>
           </Card>
@@ -228,15 +248,15 @@ export default function SpedizioniPage() {
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Form per aggiungere spedizione - Migliorato */}
-          <Card className="lg:col-span-2 bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-lg">
+          <Card className="lg:col-span-2 bg-white border border-gray-200">
+            <CardHeader className="bg-blue-900 text-white rounded-t-lg">
               <CardTitle className="flex items-center gap-3 text-xl">
-                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Plus className="h-6 w-6" />
+                <div className="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center">
+                  <Plus className="h-6 w-6 text-blue-900" />
                 </div>
                 Nuova Spedizione
               </CardTitle>
-              <CardDescription className="text-orange-100">
+              <CardDescription className="text-blue-100">
                 Inserisci peso e seleziona servizi aggiuntivi per calcolare automaticamente il prezzo
               </CardDescription>
             </CardHeader>
@@ -343,7 +363,7 @@ export default function SpedizioniPage() {
                 <Button 
                   type="submit" 
                   disabled={loading || !peso} 
-                  className="w-full h-14 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                  className="w-full h-14 bg-blue-900 hover:bg-blue-800 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">
@@ -362,11 +382,11 @@ export default function SpedizioniPage() {
           </Card>
 
           {/* Riepilogo giornata - Migliorato */}
-          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-t-lg">
+          <Card className="bg-white border border-gray-200">
+            <CardHeader className="bg-blue-900 text-white rounded-t-lg">
               <CardTitle className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Award className="h-6 w-6" />
+                <div className="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center">
+                  <Award className="h-6 w-6 text-blue-900" />
                 </div>
                 Dashboard Live
               </CardTitle>
@@ -376,19 +396,19 @@ export default function SpedizioniPage() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-6">
-                <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+                <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-700 font-medium">💰 Entrate Totali</span>
-                    <span className="text-2xl font-bold text-green-600">
+                    <span className="text-2xl font-bold text-blue-900">
                       {formatCurrency(totaleGiornata.entrate)}
                     </span>
                   </div>
                 </div>
                 
-                <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+                <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-700 font-medium">💸 Costi Totali</span>
-                    <span className="text-2xl font-bold text-red-600">
+                    <span className="text-2xl font-bold text-yellow-700">
                       {formatCurrency(totaleGiornata.costi)}
                     </span>
                   </div>
@@ -397,25 +417,25 @@ export default function SpedizioniPage() {
                 <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-700 font-medium">🎯 Guadagno Netto</span>
-                    <span className="text-2xl font-bold text-blue-600">
+                    <span className="text-2xl font-bold text-blue-900">
                       {formatCurrency(totaleGiornata.guadagni)}
                     </span>
                   </div>
                 </div>
                 
-                <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-700 font-medium">📊 Margine</span>
-                    <span className="text-2xl font-bold text-purple-600">
+                    <span className="text-2xl font-bold text-yellow-700">
                       {marginePercentuale}%
                     </span>
                   </div>
                 </div>
                 
-                <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
+                <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-700 font-medium">📦 Spedizioni</span>
-                    <span className="text-2xl font-bold text-orange-600">
+                    <span className="text-2xl font-bold text-blue-900">
                       {spedizioni.length}
                     </span>
                   </div>
@@ -426,15 +446,15 @@ export default function SpedizioniPage() {
         </div>
 
         {/* Lista spedizioni - Migliorata */}
-        <Card className="mt-8 bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-          <CardHeader className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-t-lg">
+        <Card className="mt-8 bg-white border border-gray-200">
+          <CardHeader className="bg-blue-900 text-white rounded-t-lg">
             <CardTitle className="flex items-center gap-3 text-xl">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <Package className="h-6 w-6" />
+              <div className="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center">
+                <Package className="h-6 w-6 text-blue-900" />
               </div>
               Registro Spedizioni Live
             </CardTitle>
-            <CardDescription className="text-indigo-100">
+            <CardDescription className="text-blue-100">
               Monitoraggio in tempo reale delle spedizioni giornaliere
             </CardDescription>
           </CardHeader>
@@ -460,7 +480,7 @@ export default function SpedizioniPage() {
                 <div className="grid gap-4">
                   {spedizioni.map((spedizione, index) => (
                     <div key={spedizione.id} className="group relative bg-gradient-to-r from-white to-gray-50 border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
-                      <div className="absolute top-4 left-4 w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                      <div className="absolute top-4 left-4 w-8 h-8 bg-blue-900 rounded-full flex items-center justify-center text-white font-bold text-sm">
                         {index + 1}
                       </div>
                       
@@ -468,7 +488,7 @@ export default function SpedizioniPage() {
                         <div className="flex justify-between items-start mb-4">
                           <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2">
-                              <Scale className="w-5 h-5 text-orange-500" />
+                              <Scale className="w-5 h-5 text-yellow-500" />
                               <span className="text-2xl font-bold text-gray-800">{spedizione.peso}kg</span>
                             </div>
                             
@@ -502,28 +522,28 @@ export default function SpedizioniPage() {
                         </div>
                         
                         <div className="grid grid-cols-3 gap-4">
-                          <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                          <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
                             <div className="flex items-center gap-2 mb-1">
-                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                              <span className="text-sm font-medium text-green-700">Prezzo Cliente</span>
+                              <div className="w-2 h-2 bg-blue-900 rounded-full"></div>
+                              <span className="text-sm font-medium text-blue-900">Prezzo Cliente</span>
                             </div>
-                            <p className="text-xl font-bold text-green-700">{formatCurrency(spedizione.prezzoCliente)}</p>
+                            <p className="text-xl font-bold text-blue-900">{formatCurrency(spedizione.prezzoCliente)}</p>
+                          </div>
+                          
+                          <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                              <span className="text-sm font-medium text-yellow-700">Guadagno</span>
+                            </div>
+                            <p className="text-xl font-bold text-yellow-700">{formatCurrency(spedizione.guadagno)}</p>
                           </div>
                           
                           <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
                             <div className="flex items-center gap-2 mb-1">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                              <span className="text-sm font-medium text-blue-700">Guadagno</span>
+                              <div className="w-2 h-2 bg-blue-900 rounded-full"></div>
+                              <span className="text-sm font-medium text-blue-900">Rimborso</span>
                             </div>
-                            <p className="text-xl font-bold text-blue-700">{formatCurrency(spedizione.guadagno)}</p>
-                          </div>
-                          
-                          <div className="bg-red-50 rounded-lg p-3 border border-red-200">
-                            <div className="flex items-center gap-2 mb-1">
-                              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                              <span className="text-sm font-medium text-red-700">Rimborso</span>
-                            </div>
-                            <p className="text-xl font-bold text-red-700">{formatCurrency(spedizione.rimborsoSpese)}</p>
+                            <p className="text-xl font-bold text-blue-900">{formatCurrency(spedizione.rimborsoSpese)}</p>
                           </div>
                         </div>
                         
@@ -535,7 +555,7 @@ export default function SpedizioniPage() {
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-gray-500">Margine:</span>
-                              <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-sm font-semibold">
+                              <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-sm font-semibold">
                                 {((spedizione.guadagno / spedizione.prezzoCliente) * 100).toFixed(1)}%
                               </span>
                             </div>

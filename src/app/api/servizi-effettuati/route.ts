@@ -1,28 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getTurnoCorrente } from '@/lib/utils'
+import { getTurnoCorrente, calcolaPrezzoServizio, SERVIZI_DISPONIBILI } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const data = searchParams.get('data')
-    const turno = searchParams.get('turno')
+    const sede = searchParams.get('sede')
 
-    const whereClause: { createdAt?: { gte: Date; lt: Date }; turno?: string } = {}
-
-    if (data) {
-      const startDate = new Date(data)
-      const endDate = new Date(data)
-      endDate.setDate(endDate.getDate() + 1)
-      
-      whereClause.createdAt = {
-        gte: startDate,
-        lt: endDate
-      }
+    if (!sede) {
+      return NextResponse.json(
+        { error: 'Sede è richiesta' },
+        { status: 400 }
+      )
     }
 
-    if (turno) {
-      whereClause.turno = turno
+    const whereClause: { sede: string; createdAt?: { gte: Date; lte: Date } } = { sede }
+
+    if (data) {
+      const targetDate = new Date(data)
+      const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0))
+      const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999))
+      
+      whereClause.createdAt = {
+        gte: startOfDay,
+        lte: endOfDay
+      }
     }
 
     const serviziEffettuati = await prisma.servizioEffettuato.findMany({
@@ -30,14 +33,16 @@ export async function GET(request: NextRequest) {
       include: {
         servizio: true
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: {
+        createdAt: 'desc'
+      }
     })
 
     return NextResponse.json(serviziEffettuati)
   } catch (error) {
     console.error('Errore nel recupero dei servizi effettuati:', error)
     return NextResponse.json(
-      { error: 'Errore nel recupero dei servizi effettuati' },
+      { error: 'Errore interno del server' },
       { status: 500 }
     )
   }
@@ -45,17 +50,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { servizioId, quantita } = body
+    const { servizioId, quantita, turno, sede } = await request.json()
 
-    if (!servizioId || !quantita) {
+    // Validazione dei dati
+    if (!servizioId || !quantita || !turno || !sede) {
       return NextResponse.json(
-        { error: 'Campi obbligatori mancanti' },
+        { error: 'Tutti i campi sono obbligatori' },
         { status: 400 }
       )
     }
 
-    // Recupera il servizio per calcolare i costi
+    // Recupera il servizio dal database
     const servizio = await prisma.servizio.findUnique({
       where: { id: parseInt(servizioId) }
     })
@@ -67,33 +72,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Calcoli
-    const quantitaNum = parseInt(quantita)
-    const prezzoCliente = servizio.prezzoCliente * quantitaNum
-    const costoConIva = servizio.costoNetto * (1 + servizio.ivaPercent / 100)
-    const costoTotale = costoConIva * quantitaNum
+    // Calcola i valori
+    const prezzoCliente = servizio.prezzoCliente * quantita
+    const costoTotale = servizio.costoNetto * quantita
     const guadagno = prezzoCliente - costoTotale
-    const turno = getTurnoCorrente()
 
-    const servizioEffettuato = await prisma.servizioEffettuato.create({
+    const nuovoServizio = await prisma.servizioEffettuato.create({
       data: {
         servizioId: parseInt(servizioId),
-        quantita: quantitaNum,
+        quantita,
         prezzoCliente,
         costoTotale,
         guadagno,
-        turno
+        turno,
+        sede
       },
       include: {
         servizio: true
       }
     })
 
-    return NextResponse.json(servizioEffettuato, { status: 201 })
+    return NextResponse.json(nuovoServizio, { status: 201 })
   } catch (error) {
     console.error('Errore nella creazione del servizio effettuato:', error)
     return NextResponse.json(
-      { error: 'Errore nella creazione del servizio effettuato' },
+      { error: 'Errore interno del server' },
       { status: 500 }
     )
   }

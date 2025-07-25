@@ -104,8 +104,9 @@ export const PREZZI_SERVIZI = {
 }
 
 // Funzione per calcolare il prezzo di un servizio
-export function calcolaPrezzoServizio(tipoServizio: keyof typeof PREZZI_SERVIZI, quantita: number = 1) {
-  const servizio = PREZZI_SERVIZI[tipoServizio]
+export function calcolaPrezzoServizio(tipoServizio: keyof typeof PREZZI_SERVIZI, quantita: number = 1, sedeId?: string) {
+  const prezziSede = sedeId ? getPrezziPerSede(sedeId) : PREZZI_SERVIZI
+  const servizio = prezziSede[tipoServizio]
   const costoTotale = servizio.costoAzienda * quantita
   const ivaAzienda = Math.round(costoTotale * servizio.iva * 100) / 100
   const costoConIva = Math.round((costoTotale + ivaAzienda) * 100) / 100
@@ -120,6 +121,21 @@ export function calcolaPrezzoServizio(tipoServizio: keyof typeof PREZZI_SERVIZI,
     guadagno,
     quantita
   }
+}
+
+// Funzione per ottenere i prezzi specifici per sede
+export function getPrezziPerSede(sedeId: string): typeof PREZZI_SERVIZI {
+  try {
+    const today = new Date().toISOString().split('T')[0]
+    const storageKey = `prezzi_personalizzati_${sedeId}_${today}`
+    const prezziPersonalizzati = localStorage.getItem(storageKey)
+    if (prezziPersonalizzati) {
+      return { ...PREZZI_SERVIZI, ...JSON.parse(prezziPersonalizzati) }
+    }
+  } catch (error) {
+    console.error('Errore nel caricamento prezzi per sede:', error)
+  }
+  return PREZZI_SERVIZI
 }
 
 // Funzione per aggiornare i prezzi dei servizi (per le impostazioni)
@@ -137,10 +153,11 @@ export const SERVIZI_DISPONIBILI = [
 ] as const
 
 // Funzione per ottenere le opzioni del dropdown servizi
-export function getOpzioniServizi() {
+export function getOpzioniServizi(sedeId?: string) {
+  const prezziSede = sedeId ? getPrezziPerSede(sedeId) : PREZZI_SERVIZI
   return SERVIZI_DISPONIBILI.map(servizio => ({
     value: servizio.id,
-    label: `${servizio.nome} - ${formatCurrency(PREZZI_SERVIZI[servizio.id as keyof typeof PREZZI_SERVIZI].prezzoCliente)}`,
+    label: `${servizio.nome} - ${formatCurrency(prezziSede[servizio.id as keyof typeof PREZZI_SERVIZI].prezzoCliente)}`,
     descrizione: servizio.descrizione
   }))
 }

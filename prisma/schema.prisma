@@ -16,21 +16,20 @@ model Servizio {
   prezzoCliente Float    // Prezzo che paga il cliente
   costoNetto    Float    // Costo a noi, senza IVA
   ivaPercent    Float    @default(22)
-
   operazioni    ServizioEffettuato[]
 }
 
 model ServizioEffettuato {
   id            Int      @id @default(autoincrement())
-  servizioId    Int
+  servizioId    Int      // Torna a Int per la relazione
+  servizio      Servizio @relation(fields: [servizioId], references: [id])
   quantita      Int
   prezzoCliente Float
   costoTotale   Float
   guadagno      Float
   turno         String   // mattina / pomeriggio
+  sede          String   // aragona / porto-empedocle
   createdAt     DateTime @default(now())
-
-  servizio      Servizio @relation(fields: [servizioId], references: [id])
 }
 
 model Spedizione {
@@ -44,6 +43,7 @@ model Spedizione {
   prezzoCliente Float    // Prezzo al cliente
   guadagno      Float
   turno         String
+  sede          String   // aragona / porto-empedocle
   createdAt     DateTime @default(now())
 }
 

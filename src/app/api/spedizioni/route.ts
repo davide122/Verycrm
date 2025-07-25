@@ -7,8 +7,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const data = searchParams.get('data')
     const turno = searchParams.get('turno')
+    const sede = searchParams.get('sede')
 
-    const whereClause: { createdAt?: { gte: Date; lt: Date }; turno?: string } = {}
+    const whereClause: { createdAt?: { gte: Date; lt: Date }; turno?: string; sede?: string } = {}
 
     if (data) {
       const startDate = new Date(data)
@@ -23,6 +24,10 @@ export async function GET(request: NextRequest) {
 
     if (turno) {
       whereClause.turno = turno
+    }
+
+    if (sede) {
+      whereClause.sede = sede
     }
 
     const spedizioni = await prisma.spedizione.findMany({
@@ -43,11 +48,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { peso, pellicola = false, imballaggio = false } = body
+    const { peso, pellicola = false, imballaggio = false, sede } = body
 
-    if (!peso) {
+    if (!peso || !sede) {
       return NextResponse.json(
-        { error: 'Il peso è obbligatorio' },
+        { error: 'Peso e sede sono obbligatori' },
         { status: 400 }
       )
     }
@@ -66,7 +71,8 @@ export async function POST(request: NextRequest) {
         rimborsoSpese: prezzi.rimborso,
         prezzoCliente: prezzi.cliente,
         guadagno: prezzi.guadagno,
-        turno
+        turno,
+        sede: sede
       }
     })
 

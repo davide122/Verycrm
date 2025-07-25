@@ -27,12 +27,20 @@ import {
   TrendingDown,
   Settings
 } from 'lucide-react'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency, formatDate, SERVIZI_DISPONIBILI } from '@/lib/utils'
+import { useSede } from '@/hooks/useSede'
+import { generateChiusuraReport } from '@/lib/pdfGenerator'
 
 interface ServizioEffettuato {
   id: string
+  servizioId: number
   quantita: number
   prezzoCliente: number
+  costoTotale: number
+  guadagno: number
+  turno: string
+  sede: string
+  createdAt: string
   servizio: {
     nome: string
   }
@@ -42,6 +50,8 @@ interface Spedizione {
   id: string
   peso: number
   prezzoCliente: number
+  guadagno: number
+  rimborsoSpese: number
 }
 
 interface RiepilogoData {
@@ -73,14 +83,17 @@ interface RiepilogoData {
 }
 
 export default function DashboardPage() {
+  const { currentSede } = useSede()
   const [riepilogo, setRiepilogo] = useState<RiepilogoData | null>(null)
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [selectedTurno, setSelectedTurno] = useState<string>('all')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    fetchRiepilogo()
-  }, [selectedDate, selectedTurno])
+    if (currentSede) {
+      fetchRiepilogo()
+    }
+  }, [selectedDate, selectedTurno, currentSede])
 
   const fetchRiepilogo = async () => {
     setLoading(true)
@@ -88,6 +101,9 @@ export default function DashboardPage() {
       let url = `/api/riepilogo?data=${selectedDate}`
       if (selectedTurno && selectedTurno !== 'all') {
         url += `&turno=${selectedTurno}`
+      }
+      if (currentSede?.id) {
+        url += `&sede=${currentSede.id}`
       }
       
       const response = await fetch(url)
@@ -115,7 +131,15 @@ export default function DashboardPage() {
               <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Analytics Dashboard
               </h1>
-              <p className="text-gray-600 mt-1">Monitoraggio avanzato delle performance</p>
+              <div className="flex items-center gap-3 mt-1">
+                <p className="text-gray-600">Monitoraggio avanzato delle performance</p>
+                {currentSede && (
+                  <div className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg">
+                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                    <span>Sede: {currentSede.nome}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           
@@ -130,9 +154,19 @@ export default function DashboardPage() {
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               Aggiorna
             </Button>
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-2"
+              onClick={() => {
+                if (riepilogo && currentSede) {
+                  generateChiusuraReport(riepilogo, currentSede, selectedDate, selectedTurno)
+                }
+              }}
+              disabled={!riepilogo || !currentSede}
+            >
               <Download className="w-4 h-4" />
-              Esporta
+              Stampa PDF
             </Button>
             <Link href="/impostazioni">
               <Button variant="outline" size="sm" className="flex items-center gap-2">

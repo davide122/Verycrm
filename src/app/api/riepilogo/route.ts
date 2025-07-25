@@ -6,6 +6,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const data = searchParams.get('data')
     const turno = searchParams.get('turno')
+    const sede = searchParams.get('sede')
 
     if (!data) {
       return NextResponse.json(
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
     const endDate = new Date(data)
     endDate.setDate(endDate.getDate() + 1)
 
-    const whereClause: { createdAt: { gte: Date; lt: Date }; turno?: string } = {
+    const whereClause: { createdAt: { gte: Date; lt: Date }; turno?: string; sede?: string } = {
       createdAt: {
         gte: startDate,
         lt: endDate
@@ -27,6 +28,10 @@ export async function GET(request: NextRequest) {
 
     if (turno) {
       whereClause.turno = turno
+    }
+
+    if (sede) {
+      whereClause.sede = sede
     }
 
     // Recupera servizi effettuati
