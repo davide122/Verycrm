@@ -50,12 +50,20 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { servizioId, quantita, turno, sede } = await request.json()
+    const { servizioId, quantita, turno, sede, metodoPagamento } = await request.json()
 
     // Validazione dei dati
     if (!servizioId || !quantita || !turno || !sede) {
       return NextResponse.json(
         { error: 'Tutti i campi sono obbligatori' },
+        { status: 400 }
+      )
+    }
+
+    // Validazione metodo pagamento
+    if (metodoPagamento && !['CONTANTI', 'POS'].includes(metodoPagamento)) {
+      return NextResponse.json(
+        { error: 'Metodo di pagamento non valido' },
         { status: 400 }
       )
     }
@@ -85,7 +93,8 @@ export async function POST(request: NextRequest) {
         costoTotale,
         guadagno,
         turno,
-        sede
+        sede,
+        metodoPagamento: metodoPagamento || 'CONTANTI'
       },
       include: {
         servizio: true

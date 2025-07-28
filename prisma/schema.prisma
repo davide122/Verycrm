@@ -19,6 +19,11 @@ model Servizio {
   operazioni    ServizioEffettuato[]
 }
 
+enum MetodoPagamento {
+  CONTANTI
+  POS
+}
+
 model ServizioEffettuato {
   id            Int      @id @default(autoincrement())
   servizioId    Int      // Torna a Int per la relazione
@@ -29,6 +34,7 @@ model ServizioEffettuato {
   guadagno      Float
   turno         String   // mattina / pomeriggio
   sede          String   // aragona / porto-empedocle
+  metodoPagamento MetodoPagamento @default(CONTANTI)
   createdAt     DateTime @default(now())
 }
 
@@ -36,7 +42,9 @@ model Spedizione {
   id            Int      @id @default(autoincrement())
   peso          Float
   pellicola     Boolean  @default(false)
+  quantitaPellicole Int  @default(1)  // Quantità pellicole (x1, x2, x3, x4)
   imballaggio   Boolean  @default(false)
+  quantitaImballaggi Int @default(1)  // Quantità imballaggi (x1, x2, x3, x4)
   prezzoPoste   Float    // Prezzo base Poste
   iva           Float
   rimborsoSpese Float
@@ -44,6 +52,7 @@ model Spedizione {
   guadagno      Float
   turno         String
   sede          String   // aragona / porto-empedocle
+  metodoPagamento MetodoPagamento @default(CONTANTI)
   createdAt     DateTime @default(now())
 }
 
@@ -55,4 +64,29 @@ model Chiusura {
   totaleCosti    Float
   totaleGuadagni Float
   chiuso         Boolean  @default(true)
+}
+
+model SaldoDroppoint {
+  id          Int      @id @default(autoincrement())
+  data        DateTime @db.Date
+  saldoIniziale Float  // Saldo all'apertura del sistema
+  saldoFinale   Float? // Saldo a chiusura (opzionale)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relazione con le ricariche
+  ricariche   RicaricaDroppoint[]
+  
+  @@unique([data]) // Un solo record per data
+}
+
+model RicaricaDroppoint {
+  id          Int      @id @default(autoincrement())
+  saldoId     Int
+  saldo       SaldoDroppoint @relation(fields: [saldoId], references: [id], onDelete: Cascade)
+  importo     Float
+  descrizione String?
+  turno       String   // mattina / pomeriggio
+  sede        String   // aragona / porto-empedocle
+  createdAt   DateTime @default(now())
 }

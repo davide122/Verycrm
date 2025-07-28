@@ -71,6 +71,40 @@ export async function GET(request: NextRequest) {
       { entrate: 0, costi: 0, guadagni: 0, quantita: 0 }
     )
 
+    // Calcola totali per metodo di pagamento - SERVIZI
+    const pagamentiServizi = serviziEffettuati.reduce(
+      (acc: { contanti: number; pos: number }, servizio: typeof serviziEffettuati[0]) => {
+        if (servizio.metodoPagamento === 'CONTANTI') {
+          acc.contanti += servizio.prezzoCliente
+        } else if (servizio.metodoPagamento === 'POS') {
+          acc.pos += servizio.prezzoCliente
+        }
+        return acc
+      },
+      { contanti: 0, pos: 0 }
+    )
+
+    // Calcola totali per metodo di pagamento - SPEDIZIONI
+    const pagamentiSpedizioni = spedizioni.reduce(
+      (acc: { contanti: number; pos: number }, spedizione: typeof spedizioni[0]) => {
+        if (spedizione.metodoPagamento === 'CONTANTI') {
+          acc.contanti += spedizione.prezzoCliente
+        } else if (spedizione.metodoPagamento === 'POS') {
+          acc.pos += spedizione.prezzoCliente
+        }
+        return acc
+      },
+      { contanti: 0, pos: 0 }
+    )
+
+    // Calcola spese operative (rimborsi spedizioni)
+    const speseOperative = spedizioni.reduce(
+      (acc: number, spedizione: typeof spedizioni[0]) => {
+        return acc + spedizione.rimborsoSpese
+      },
+      0
+    )
+
     // Totali complessivi
     const totali = {
       entrate: totaliServizi.entrate + totaliSpedizioni.entrate,
@@ -89,7 +123,17 @@ export async function GET(request: NextRequest) {
         lista: spedizioni,
         totali: totaliSpedizioni
       },
-      totali
+      totali,
+      pagamenti: {
+        servizi: pagamentiServizi,
+        spedizioni: pagamentiSpedizioni,
+        totaliContanti: pagamentiServizi.contanti + pagamentiSpedizioni.contanti,
+        totaliPos: pagamentiServizi.pos + pagamentiSpedizioni.pos
+      },
+      speseOperative: {
+        fabioBusta: speseOperative,
+        descrizione: "Spese operative per rimborsi spedizioni Poste Italiane"
+      }
     }
 
     return NextResponse.json(riepilogo)

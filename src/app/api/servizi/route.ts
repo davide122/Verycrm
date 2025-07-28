@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { nome, prezzoCliente, costoNetto, ivaPercent = 22 } = body
 
-    if (!nome || !prezzoCliente || !costoNetto) {
+    if (!nome || prezzoCliente === undefined || prezzoCliente === null || costoNetto === undefined || costoNetto === null) {
       return NextResponse.json(
         { error: 'Campi obbligatori mancanti' },
         { status: 400 }
@@ -52,7 +52,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { id, nome, prezzoCliente, costoNetto, ivaPercent } = body
 
-    if (!id || !nome || !prezzoCliente || !costoNetto) {
+    if (!id || !nome || prezzoCliente === undefined || prezzoCliente === null || costoNetto === undefined || costoNetto === null) {
       return NextResponse.json(
         { error: 'Campi obbligatori mancanti' },
         { status: 400 }

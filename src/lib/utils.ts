@@ -12,7 +12,7 @@ export function getTurnoCorrente(): string {
 }
 
 // Funzione per calcolare il prezzo delle spedizioni con listino ufficiale Poste
-export function calcolaPrezzo(peso: number, pellicola: boolean, imballaggio: boolean) {
+export function calcolaPrezzo(peso: number, pellicola: boolean, imballaggio: boolean, quantitaPellicole: number = 1, quantitaImballaggi: number = 1) {
   const postePrezzi = [
     { min: 0, max: 2, prezzo: 4.50 },
     { min: 2, max: 5, prezzo: 5.45 },
@@ -46,7 +46,9 @@ export function calcolaPrezzo(peso: number, pellicola: boolean, imballaggio: boo
   const cliente = clientePrezzi.find(p => peso > p.min && peso <= p.max)?.prezzo || 0
   const iva = Math.round(poste * 0.22 * 100) / 100
   const rimborso = Math.round((poste + iva) * 100) / 100
-  const extra = (pellicola ? 3 : 0) + (imballaggio ? 5 : 0)
+  const extraPellicole = pellicola ? (3 * quantitaPellicole) : 0
+  const extraImballaggi = imballaggio ? (5 * quantitaImballaggi) : 0
+  const extra = extraPellicole + extraImballaggi
   const totaleCliente = cliente + extra
   const varie = Math.round((totaleCliente - rimborso) * 100) / 100
   const guadagno = varie

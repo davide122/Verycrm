@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Package, FileText, BarChart3, Clock, TrendingUp, Users, Calendar, Star, ArrowRight, Zap, Settings } from 'lucide-react'
+import { Package, FileText, BarChart3, Clock, TrendingUp, Users, Calendar, Star, ArrowRight, Zap, Settings, Calculator, DollarSign, Building2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { formatCurrency } from '@/lib/utils'
 import { useSede } from '@/hooks/useSede'
@@ -128,6 +128,22 @@ export default function Home() {
       href: '/dashboard',
       color: 'bg-blue-700',
       stats: `${formatCurrency(stats.guadagno)} guadagno oggi`
+    },
+    {
+      icon: DollarSign,
+      title: 'Saldo Droppoint',
+      description: 'Gestione saldo giornaliero Droppoint e ricariche durante il turno',
+      href: '/saldo-droppoint',
+      color: 'bg-purple-600',
+      stats: 'Gestisci saldo'
+    },
+    {
+      icon: Calculator,
+      title: 'Chiusura Unificata',
+      description: 'Sistema completo di chiusura con verifica saldo droppoint per mattina/sera e singola sede/entrambe',
+      href: '/chiusura',
+      color: 'bg-gradient-to-r from-green-600 to-emerald-600',
+      stats: 'Mattina/Sera • Sede A/B/Entrambe'
     },
     {
       icon: Settings,

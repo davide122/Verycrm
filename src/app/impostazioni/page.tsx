@@ -55,7 +55,7 @@ export default function ImpostazioniPage() {
 
   const handleAddServizio = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!nuovoServizio.nome || !nuovoServizio.prezzoCliente || !nuovoServizio.costoNetto) return
+    if (!nuovoServizio.nome || !nuovoServizio.prezzoCliente || nuovoServizio.costoNetto === '') return
 
     setLoading(true)
     try {

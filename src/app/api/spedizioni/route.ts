@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { peso, pellicola = false, imballaggio = false, sede } = body
+    const { peso, pellicola = false, quantitaPellicole = 1, imballaggio = false, quantitaImballaggi = 1, metodoPagamento = 'CONTANTI', sede } = body
 
     if (!peso || !sede) {
       return NextResponse.json(
@@ -57,22 +57,32 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (metodoPagamento && !['CONTANTI', 'POS'].includes(metodoPagamento)) {
+      return NextResponse.json(
+        { error: 'Metodo di pagamento non valido' },
+        { status: 400 }
+      )
+    }
+
     // Calcola i prezzi usando la funzione utility
-    const prezzi = calcolaPrezzo(parseFloat(peso), pellicola, imballaggio)
+    const prezzi = calcolaPrezzo(parseFloat(peso), pellicola, imballaggio, quantitaPellicole, quantitaImballaggi)
     const turno = getTurnoCorrente()
 
     const spedizione = await prisma.spedizione.create({
       data: {
         peso: parseFloat(peso),
         pellicola,
+        quantitaPellicole: pellicola ? quantitaPellicole : 1,
         imballaggio,
+        quantitaImballaggi: imballaggio ? quantitaImballaggi : 1,
         prezzoPoste: prezzi.poste,
         iva: prezzi.iva,
         rimborsoSpese: prezzi.rimborso,
         prezzoCliente: prezzi.cliente,
         guadagno: prezzi.guadagno,
         turno,
-        sede: sede
+        sede: sede,
+        metodoPagamento: metodoPagamento || 'CONTANTI'
       }
     })
 

@@ -6,14 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
-import { ArrowLeft, Plus, Package, Truck, Scale, Shield, TrendingUp, Star, Award, Activity, CheckCircle, Calculator, Layers, Box, Settings } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ArrowLeft, Plus, Package, Truck, Scale, Shield, TrendingUp, Star, Award, Activity, CheckCircle, Calculator, Layers, Box, Settings, CreditCard, Banknote } from 'lucide-react'
 import { formatCurrency, formatDate, calcolaPrezzo } from '@/lib/utils'
 import { useSede } from '@/hooks/useSede'
 interface Spedizione {
   id: number
   peso: number
   pellicola: boolean
+  quantitaPellicole: number
   imballaggio: boolean
+  quantitaImballaggi: number
   prezzoPoste: number
   iva: number
   rimborsoSpese: number
@@ -21,6 +24,7 @@ interface Spedizione {
   guadagno: number
   turno: string
   sede: string
+  metodoPagamento: string
   createdAt: string
 }
 
@@ -29,7 +33,10 @@ export default function SpedizioniPage() {
   const [spedizioni, setSpedizioni] = useState<Spedizione[]>([])
   const [peso, setPeso] = useState('')
   const [pellicola, setPellicola] = useState(false)
+  const [quantitaPellicole, setQuantitaPellicole] = useState(1)
   const [imballaggio, setImballaggio] = useState(false)
+  const [quantitaImballaggi, setQuantitaImballaggi] = useState(1)
+  const [metodoPagamento, setMetodoPagamento] = useState('CONTANTI')
   const [loading, setLoading] = useState(false)
   const [prezzoCalcolato, setPrezzoCalcolato] = useState<{
     poste: number;
@@ -50,7 +57,7 @@ export default function SpedizioniPage() {
     if (peso) {
       const pesoNum = parseFloat(peso)
       if (pesoNum > 0) {
-        const calcolo = calcolaPrezzo(pesoNum, pellicola, imballaggio)
+        const calcolo = calcolaPrezzo(pesoNum, pellicola, imballaggio, quantitaPellicole, quantitaImballaggi)
         setPrezzoCalcolato(calcolo)
       } else {
         setPrezzoCalcolato(null)
@@ -58,7 +65,7 @@ export default function SpedizioniPage() {
     } else {
       setPrezzoCalcolato(null)
     }
-  }, [peso, pellicola, imballaggio])
+  }, [peso, pellicola, imballaggio, quantitaPellicole, quantitaImballaggi])
 
   const fetchSpedizioni = async () => {
     try {
@@ -102,7 +109,10 @@ export default function SpedizioniPage() {
         body: JSON.stringify({
           peso: parseFloat(peso),
           pellicola,
+          quantitaPellicole,
           imballaggio,
+          quantitaImballaggi,
+          metodoPagamento,
           sede: currentSede?.id
         })
       })
@@ -113,7 +123,10 @@ export default function SpedizioniPage() {
         await fetchSpedizioni()
         setPeso('')
         setPellicola(false)
+        setQuantitaPellicole(1)
         setImballaggio(false)
+        setQuantitaImballaggi(1)
+        setMetodoPagamento('CONTANTI')
         setPrezzoCalcolato(null)
         alert(`Spedizione di ${parseFloat(peso)}kg registrata con successo!`)
       } else {
@@ -284,39 +297,101 @@ export default function SpedizioniPage() {
                     Servizi Aggiuntivi
                   </h4>
                   
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-xl hover:border-orange-300 transition-colors">
-                      <Checkbox
-                        id="pellicola"
-                        checked={pellicola}
-                        onCheckedChange={(checked) => setPellicola(checked as boolean)}
-                        className="w-5 h-5"
-                      />
-                      <div className="flex-1">
-                        <label htmlFor="pellicola" className="font-medium text-gray-800 cursor-pointer flex items-center gap-2">
-                          <Layers className="w-4 h-4 text-blue-500" />
-                          Pellicola Protettiva
-                        </label>
-                        <p className="text-sm text-gray-600">+3€ • Protezione extra</p>
+                  <div className="space-y-4">
+                    <div className="p-4 border-2 border-gray-200 rounded-xl hover:border-orange-300 transition-colors">
+                      <div className="flex items-center space-x-3 mb-3">
+                        <Checkbox
+                          id="pellicola"
+                          checked={pellicola}
+                          onCheckedChange={(checked) => setPellicola(checked as boolean)}
+                          className="w-5 h-5"
+                        />
+                        <div className="flex-1">
+                          <label htmlFor="pellicola" className="font-medium text-gray-800 cursor-pointer flex items-center gap-2">
+                            <Layers className="w-4 h-4 text-blue-500" />
+                            Pellicola Protettiva
+                          </label>
+                          <p className="text-sm text-gray-600">+3€ • Protezione extra</p>
+                        </div>
                       </div>
+                      {pellicola && (
+                        <div className="ml-8">
+                          <label className="text-sm font-medium text-gray-700 mb-2 block">Quantità Pellicole</label>
+                          <Select value={quantitaPellicole.toString()} onValueChange={(value) => setQuantitaPellicole(parseInt(value))}>
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                              <SelectItem value="1">x1</SelectItem>
+                              <SelectItem value="2">x2</SelectItem>
+                              <SelectItem value="3">x3</SelectItem>
+                              <SelectItem value="4">x4</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-xl hover:border-orange-300 transition-colors">
-                      <Checkbox
-                        id="imballaggio"
-                        checked={imballaggio}
-                        onCheckedChange={(checked) => setImballaggio(checked as boolean)}
-                        className="w-5 h-5"
-                      />
-                      <div className="flex-1">
-                        <label htmlFor="imballaggio" className="font-medium text-gray-800 cursor-pointer flex items-center gap-2">
-                          <Box className="w-4 h-4 text-green-500" />
-                          Imballaggio Rinforzato
-                        </label>
-                        <p className="text-sm text-gray-600">+5€ • Sicurezza massima</p>
+                    <div className="p-4 border-2 border-gray-200 rounded-xl hover:border-orange-300 transition-colors">
+                      <div className="flex items-center space-x-3 mb-3">
+                        <Checkbox
+                          id="imballaggio"
+                          checked={imballaggio}
+                          onCheckedChange={(checked) => setImballaggio(checked as boolean)}
+                          className="w-5 h-5"
+                        />
+                        <div className="flex-1">
+                          <label htmlFor="imballaggio" className="font-medium text-gray-800 cursor-pointer flex items-center gap-2">
+                            <Box className="w-4 h-4 text-green-500" />
+                            Imballaggio Rinforzato
+                          </label>
+                          <p className="text-sm text-gray-600">+5€ • Sicurezza massima</p>
+                        </div>
                       </div>
+                      {imballaggio && (
+                        <div className="ml-8">
+                          <label className="text-sm font-medium text-gray-700 mb-2 block">Quantità Imballaggi</label>
+                          <Select value={quantitaImballaggi.toString()} onValueChange={(value) => setQuantitaImballaggi(parseInt(value))}>
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                              <SelectItem value="1">x1</SelectItem>
+                              <SelectItem value="2">x2</SelectItem>
+                              <SelectItem value="3">x3</SelectItem>
+                              <SelectItem value="4">x4</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </div>
                   </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold mb-3 block text-gray-700 flex items-center gap-2">
+                    <CreditCard className="w-4 h-4" />
+                    Metodo di Pagamento
+                  </label>
+                  <Select value={metodoPagamento} onValueChange={setMetodoPagamento}>
+                    <SelectTrigger className="h-12 border-2 border-gray-200 hover:border-orange-400 transition-colors">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                      <SelectItem value="CONTANTI">
+                        <div className="flex items-center gap-2">
+                          <Banknote className="w-4 h-4 text-green-600" />
+                          <span>Contanti</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="POS">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="w-4 h-4 text-blue-600" />
+                          <span>POS/Carta</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {prezzoCalcolato && (
@@ -492,19 +567,31 @@ export default function SpedizioniPage() {
                               <span className="text-2xl font-bold text-gray-800">{spedizione.peso}kg</span>
                             </div>
                             
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
                               {spedizione.pellicola && (
                                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
                                   <Layers className="w-3 h-3" />
-                                  Pellicola
+                                  Pellicola x{spedizione.quantitaPellicole}
                                 </span>
                               )}
                               {spedizione.imballaggio && (
                                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
                                   <Box className="w-3 h-3" />
-                                  Imballaggio
+                                  Imballaggio x{spedizione.quantitaImballaggi}
                                 </span>
                               )}
+                              <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${
+                                spedizione.metodoPagamento === 'CONTANTI' 
+                                  ? 'bg-green-100 text-green-700' 
+                                  : 'bg-blue-100 text-blue-700'
+                              }`}>
+                                {spedizione.metodoPagamento === 'CONTANTI' ? (
+                                  <Banknote className="w-3 h-3" />
+                                ) : (
+                                  <CreditCard className="w-3 h-3" />
+                                )}
+                                {spedizione.metodoPagamento === 'CONTANTI' ? 'Contanti' : 'POS'}
+                              </span>
                             </div>
                           </div>
                           

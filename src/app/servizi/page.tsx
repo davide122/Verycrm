@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
 import { ArrowLeft, Plus, Settings, Clock, TrendingUp, Star, Activity, Zap, Package, CheckCircle, AlertCircle, Award } from 'lucide-react'
 import { useSede } from '@/hooks/useSede'
 import { formatCurrency, formatDate, getOpzioniServizi, calcolaPrezzoServizio, SERVIZI_DISPONIBILI } from '@/lib/utils'
@@ -28,6 +29,7 @@ interface ServizioEffettuato {
   guadagno: number
   turno: string
   createdAt: string
+  metodoPagamento: string
   servizio: Servizio
 }
 
@@ -48,6 +50,12 @@ export default function ServiziPage() {
   const [loading, setLoading] = useState(false)
   const [currentTime, setCurrentTime] = useState<Date | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [newServiceName, setNewServiceName] = useState('')
+  const [newServicePrice, setNewServicePrice] = useState('')
+  const [newServiceCost, setNewServiceCost] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [metodoPagamento, setMetodoPagamento] = useState('CONTANTI')
 
   useEffect(() => {
     fetchServizi()
@@ -116,7 +124,8 @@ export default function ServiziPage() {
           servizioId: selectedServizio,
           quantita: parseInt(quantita),
           turno: currentTime && currentTime.getHours() < 14 ? 'mattina' : 'pomeriggio',
-          sede: currentSede?.id
+          sede: currentSede?.id,
+          metodoPagamento
         })
       })
 
@@ -125,6 +134,8 @@ export default function ServiziPage() {
         setServiziEffettuati([nuovoServizio, ...serviziEffettuati])
         setSelectedServizio('')
         setQuantita('')
+        setMetodoPagamento('CONTANTI')
+        setSearchTerm('')
         alert(`Servizio registrato con successo!`)
       } else {
         throw new Error('Errore nella registrazione del servizio')
@@ -136,6 +147,68 @@ export default function ServiziPage() {
       setLoading(false)
     }
   }
+
+  const handleCreateNewService = async () => {
+    const serviceName = newServiceName || searchTerm
+    if (!serviceName || !newServicePrice || newServiceCost === '') {
+      alert('Compila tutti i campi per creare il nuovo servizio')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/servizi', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nome: serviceName,
+          prezzoCliente: parseFloat(newServicePrice),
+          costoNetto: parseFloat(newServiceCost),
+          ivaPercent: 22
+        })
+      })
+
+      if (response.ok) {
+        const nuovoServizio = await response.json()
+        // Ricarica i servizi per includere il nuovo
+        await fetchServizi()
+        // Seleziona automaticamente il nuovo servizio
+        setSelectedServizio(nuovoServizio.id.toString())
+        setSearchTerm(serviceName)
+        setShowDropdown(false)
+        // Resetta i campi
+        setNewServiceName('')
+        setNewServicePrice('')
+        setNewServiceCost('')
+        alert('Nuovo servizio creato con successo!')
+      } else {
+        throw new Error('Errore nella creazione del servizio')
+      }
+    } catch (error) {
+      console.error('Errore nella creazione del servizio:', error)
+      alert('Errore durante la creazione del servizio')
+    }
+  }
+
+  // Chiudi il dropdown quando si clicca fuori
+  const handleInputBlur = (e: React.FocusEvent) => {
+    // Non chiudere se il focus va su un elemento interno al dropdown
+    setTimeout(() => {
+      const activeElement = document.activeElement
+      const dropdownElement = e.currentTarget.parentElement?.querySelector('[data-dropdown]')
+      
+      if (!dropdownElement?.contains(activeElement)) {
+        setShowDropdown(false)
+        setSearchTerm(selectedServizio ? servizi.find(s => s.value === selectedServizio)?.label || '' : '')
+      }
+    }, 100)
+  }
+
+  // Filtra i servizi in base al termine di ricerca
+  const filteredServizi = servizi.filter(servizio => 
+    servizio.label.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
 
 
@@ -276,23 +349,89 @@ export default function ServiziPage() {
                     <label className="text-sm font-semibold mb-3 block text-gray-700">
                       Tipo di Servizio
                     </label>
-                    <Select value={selectedServizio} onValueChange={setSelectedServizio}>
-                      <SelectTrigger className="h-12 border border-gray-300 hover:border-blue-600 focus:border-blue-600 bg-white">
-                        <SelectValue placeholder="Seleziona un servizio" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white">
-                        {servizi.map((servizio) => (
-                          <SelectItem key={servizio.value} value={servizio.value} className="py-3">
-                            <div className="flex flex-col gap-1">
-                              <div className="flex justify-between items-center w-full">
-                                <span className="font-medium">{servizio.label}</span>
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Input
+                           type="text"
+                           placeholder="Cerca o digita nuovo servizio..."
+                           value={searchTerm}
+                           onChange={(e) => {
+                             setSearchTerm(e.target.value)
+                             setShowDropdown(true)
+                           }}
+                           onFocus={() => setShowDropdown(true)}
+                           onBlur={handleInputBlur}
+                           className="h-12 border border-gray-300 hover:border-blue-600 focus:border-blue-600"
+                         />
+                        {showDropdown && searchTerm && (
+                           <div data-dropdown className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto mt-1">
+                            {filteredServizi.map((servizio) => (
+                              <div
+                                key={servizio.value}
+                                className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                onClick={() => {
+                                  setSelectedServizio(servizio.value)
+                                  setSearchTerm(servizio.label)
+                                  setShowDropdown(false)
+                                }}
+                              >
+                                <div className="font-medium">{servizio.label}</div>
+                                <div className="text-sm text-gray-500">{formatCurrency(servizio.prezzoCliente)}</div>
                               </div>
-                              <span className="text-xs text-gray-500">{formatCurrency(servizio.prezzoCliente)}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                            ))}
+                            {filteredServizi.length === 0 && (
+                               <div className="p-3 border-t border-gray-100">
+                                 <p className="text-sm text-gray-500 mb-3">Nessun servizio trovato</p>
+                                 <div className="space-y-3">
+                                   <div>
+                                      <label className="text-xs font-medium text-gray-700">Nome Servizio</label>
+                                      <Input
+                                        value={newServiceName || searchTerm}
+                                        onChange={(e) => setNewServiceName(e.target.value)}
+                                        placeholder="Nome del servizio"
+                                        className="h-8 text-sm"
+                                      />
+                                    </div>
+                                   <div className="grid grid-cols-2 gap-2">
+                                     <div>
+                                       <label className="text-xs font-medium text-gray-700">Prezzo (€)</label>
+                                       <Input
+                                         type="number"
+                                         step="0.01"
+                                         value={newServicePrice}
+                                         onChange={(e) => setNewServicePrice(e.target.value)}
+                                         placeholder="0.00"
+                                         className="h-8 text-sm"
+                                       />
+                                     </div>
+                                     <div>
+                                       <label className="text-xs font-medium text-gray-700">Costo (€)</label>
+                                       <Input
+                                         type="number"
+                                         step="0.01"
+                                         value={newServiceCost}
+                                         onChange={(e) => setNewServiceCost(e.target.value)}
+                                         placeholder="0.00"
+                                         className="h-8 text-sm"
+                                       />
+                                     </div>
+                                   </div>
+                                   <Button 
+                                      type="button" 
+                                      onClick={handleCreateNewService}
+                                      className="w-full h-8 text-sm"
+                                      disabled={!(newServiceName || searchTerm) || !newServicePrice || newServiceCost === ''}
+                                    >
+                                     <Plus className="w-3 h-3 mr-1" />
+                                     Crea Servizio
+                                   </Button>
+                                 </div>
+                               </div>
+                             )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   <div>
@@ -308,6 +447,31 @@ export default function ServiziPage() {
                       className="h-12 border border-gray-300 hover:border-blue-600 focus:border-blue-600 text-lg"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold mb-3 block text-gray-700">
+                    Metodo di Pagamento
+                  </label>
+                  <Select value={metodoPagamento} onValueChange={setMetodoPagamento}>
+                    <SelectTrigger className="h-12 border border-gray-300 hover:border-blue-600 focus:border-blue-600">
+                      <SelectValue placeholder="Seleziona metodo di pagamento" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                      <SelectItem value="CONTANTI">
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600">💵</span>
+                          Contanti
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="POS">
+                        <div className="flex items-center gap-2">
+                          <span className="text-blue-600">💳</span>
+                          POS/Carta
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
 
@@ -437,6 +601,12 @@ export default function ServiziPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold text-lg">{servizio.servizio.label}</h3>
+                          <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                            servizio.metodoPagamento === 'CONTANTI' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            <span>{servizio.metodoPagamento === 'CONTANTI' ? '💵' : '💳'}</span>
+                            {servizio.metodoPagamento === 'CONTANTI' ? 'Contanti' : 'POS'}
+                          </div>
                         </div>
                         <p className="text-sm text-gray-600">
                           Quantità: {servizio.quantita} | Turno: {servizio.turno}

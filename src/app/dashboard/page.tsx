@@ -18,7 +18,10 @@ import {
   Target,
   Clock,
   Euro,
-
+  CreditCard,
+  Banknote,
+  Wallet,
+  Receipt,
   Zap,
   Filter,
   Download,
@@ -79,6 +82,22 @@ interface RiepilogoData {
     entrate: number
     costi: number
     guadagni: number
+  }
+  pagamenti: {
+    servizi: {
+      contanti: number
+      pos: number
+    }
+    spedizioni: {
+      contanti: number
+      pos: number
+    }
+    totaliContanti: number
+    totaliPos: number
+  }
+  speseOperative: {
+    fabioBusta: number
+    descrizione: string
   }
 }
 
@@ -590,6 +609,168 @@ export default function DashboardPage() {
                         <p className="text-gray-500">Nessuna spedizione registrata</p>
                       </div>
                     )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Resoconto Pagamenti */}
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center">
+                  <Wallet className="w-5 h-5 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800">Resoconto Pagamenti</h2>
+                <div className="flex-1 h-px bg-gradient-to-r from-yellow-200 to-transparent"></div>
+              </div>
+              
+              <div className="grid lg:grid-cols-3 gap-6">
+                {/* Contanti in Cassa */}
+                <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <CardHeader className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-t-lg">
+                    <CardTitle className="flex items-center gap-3 text-xl">
+                      <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                        <Banknote className="h-6 w-6" />
+                      </div>
+                      Contanti in Cassa
+                    </CardTitle>
+                    <CardDescription className="text-green-100">
+                      💰 Totale incassi in contanti
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div className="bg-white rounded-xl p-4 border border-green-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-green-700">Servizi</span>
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        </div>
+                        <p className="text-2xl font-bold text-green-800">
+                          {formatCurrency(riepilogo.pagamenti.servizi.contanti)}
+                        </p>
+                      </div>
+                      
+                      <div className="bg-white rounded-xl p-4 border border-green-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-green-700">Spedizioni</span>
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        </div>
+                        <p className="text-2xl font-bold text-green-800">
+                          {formatCurrency(riepilogo.pagamenti.spedizioni.contanti)}
+                        </p>
+                      </div>
+                      
+                      <div className="bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl p-4 border-2 border-green-300">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-bold text-green-800">TOTALE CONTANTI</span>
+                          <Banknote className="w-5 h-5 text-green-600" />
+                        </div>
+                        <p className="text-3xl font-bold text-green-900">
+                          {formatCurrency(riepilogo.pagamenti.totaliContanti)}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Pagamenti POS */}
+                <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-t-lg">
+                    <CardTitle className="flex items-center gap-3 text-xl">
+                      <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                        <CreditCard className="h-6 w-6" />
+                      </div>
+                      Pagamenti POS
+                    </CardTitle>
+                    <CardDescription className="text-blue-100">
+                      💳 Totale incassi con carta
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div className="bg-white rounded-xl p-4 border border-blue-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-blue-700">Servizi</span>
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        </div>
+                        <p className="text-2xl font-bold text-blue-800">
+                          {formatCurrency(riepilogo.pagamenti.servizi.pos)}
+                        </p>
+                      </div>
+                      
+                      <div className="bg-white rounded-xl p-4 border border-blue-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-blue-700">Spedizioni</span>
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        </div>
+                        <p className="text-2xl font-bold text-blue-800">
+                          {formatCurrency(riepilogo.pagamenti.spedizioni.pos)}
+                        </p>
+                      </div>
+                      
+                      <div className="bg-gradient-to-r from-blue-100 to-indigo-100 rounded-xl p-4 border-2 border-blue-300">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-bold text-blue-800">TOTALE POS</span>
+                          <CreditCard className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <p className="text-3xl font-bold text-blue-900">
+                          {formatCurrency(riepilogo.pagamenti.totaliPos)}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Spese Operative Fabio Busta */}
+                <Card className="bg-gradient-to-br from-orange-50 to-red-50 border-orange-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <CardHeader className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-lg">
+                    <CardTitle className="flex items-center gap-3 text-xl">
+                      <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                        <Receipt className="h-6 w-6" />
+                      </div>
+                      Fabio Busta
+                    </CardTitle>
+                    <CardDescription className="text-orange-100">
+                      📋 Spese operative
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div className="bg-white rounded-xl p-4 border border-orange-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Package className="w-5 h-5 text-orange-600" />
+                          <span className="text-sm font-medium text-orange-700">Rimborsi Spedizioni</span>
+                        </div>
+                        <p className="text-sm text-orange-600 mb-2">
+                          {riepilogo.speseOperative.descrizione}
+                        </p>
+                        <p className="text-2xl font-bold text-orange-800">
+                          {formatCurrency(riepilogo.speseOperative.fabioBusta)}
+                        </p>
+                      </div>
+                      
+                      <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-xl p-4 border-2 border-orange-300">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-bold text-orange-800">TOTALE SPESE</span>
+                          <Receipt className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <p className="text-3xl font-bold text-orange-900">
+                          {formatCurrency(riepilogo.speseOperative.fabioBusta)}
+                        </p>
+                        <p className="text-xs text-orange-700 mt-2">
+                          Costi operativi Poste Italiane
+                        </p>
+                      </div>
+                      
+                      <div className="bg-yellow-50 rounded-xl p-3 border border-yellow-200">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                          <span className="text-xs font-medium text-yellow-700">
+                            Spese da rimborsare a Fabio
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
