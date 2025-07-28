@@ -217,7 +217,7 @@ export default function SaldoDroppointPage() {
                     <DollarSign className="w-5 h-5" />
                     Saldo Iniziale
                   </CardTitle>
-                  <CardDescription>Saldo all'apertura del sistema</CardDescription>
+                  <CardDescription>Saldo all&apos;apertura del sistema</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <Input
