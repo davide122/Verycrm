@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Plus, Package, Truck, Scale, Shield, TrendingUp, Star, Award, Activity, CheckCircle, Calculator, Layers, Box, Settings, CreditCard, Banknote } from 'lucide-react'
+import { ArrowLeft, Plus, Package, Truck, Scale, Shield, TrendingUp, Star, Award, Activity, CheckCircle, Calculator, Layers, Box, Settings, CreditCard, Banknote, Edit, Trash2 } from 'lucide-react'
 import { formatCurrency, formatDate, calcolaPrezzo } from '@/lib/utils'
 import { useSede } from '@/hooks/useSede'
 interface Spedizione {
@@ -37,6 +37,11 @@ export default function SpedizioniPage() {
   const [imballaggio, setImballaggio] = useState(false)
   const [quantitaImballaggi, setQuantitaImballaggi] = useState(1)
   const [metodoPagamento, setMetodoPagamento] = useState('CONTANTI')
+  const [editingSpedizione, setEditingSpedizione] = useState<Spedizione | null>(null)
+  const [editPeso, setEditPeso] = useState('')
+  const [editPellicola, setEditPellicola] = useState('')
+  const [editImballaggio, setEditImballaggio] = useState('')
+  const [editMetodoPagamento, setEditMetodoPagamento] = useState('CONTANTI')
   const [loading, setLoading] = useState(false)
   const [prezzoCalcolato, setPrezzoCalcolato] = useState<{
     poste: number;
@@ -138,6 +143,81 @@ export default function SpedizioniPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleEditSpedizione = (spedizione: Spedizione) => {
+    setEditingSpedizione(spedizione)
+    setEditPeso(spedizione.peso.toString())
+    setEditPellicola(spedizione.quantitaPellicole.toString())
+    setEditImballaggio(spedizione.quantitaImballaggi.toString())
+    setEditMetodoPagamento(spedizione.metodoPagamento)
+  }
+
+  const handleUpdateSpedizione = async () => {
+    if (!editingSpedizione || !editPeso) return
+
+    try {
+      const response = await fetch(`/api/spedizioni/${editingSpedizione.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          peso: parseFloat(editPeso),
+          quantitaPellicole: parseInt(editPellicola) || 0,
+          quantitaImballaggi: parseInt(editImballaggio) || 1,
+          turno: editingSpedizione.turno,
+          sede: currentSede?.id || editingSpedizione.sede,
+          metodoPagamento: editMetodoPagamento
+        })
+      })
+
+      if (response.ok) {
+        const spedizioneAggiornata = await response.json()
+        setSpedizioni(spedizioni.map(s => 
+          s.id === editingSpedizione.id ? spedizioneAggiornata : s
+        ))
+        setEditingSpedizione(null)
+        setEditPeso('')
+        setEditPellicola('')
+        setEditImballaggio('')
+        setEditMetodoPagamento('CONTANTI')
+        alert('Spedizione modificata con successo!')
+      } else {
+        throw new Error('Errore nella modifica della spedizione')
+      }
+    } catch (error) {
+      console.error('Errore nella modifica della spedizione:', error)
+      alert('Errore durante la modifica della spedizione')
+    }
+  }
+
+  const handleDeleteSpedizione = async (id: number) => {
+    if (!confirm('Sei sicuro di voler eliminare questa spedizione?')) return
+
+    try {
+      const response = await fetch(`/api/spedizioni/${id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        setSpedizioni(spedizioni.filter(s => s.id !== id))
+        alert('Spedizione eliminata con successo!')
+      } else {
+        throw new Error('Errore nell\'eliminazione della spedizione')
+      }
+    } catch (error) {
+      console.error('Errore nell\'eliminazione della spedizione:', error)
+      alert('Errore durante l\'eliminazione della spedizione')
+    }
+  }
+
+  const cancelEditSpedizione = () => {
+    setEditingSpedizione(null)
+    setEditPeso('')
+    setEditPellicola('')
+    setEditImballaggio('')
+    setEditMetodoPagamento('CONTANTI')
   }
 
   const totaleGiornata = spedizioni.reduce((acc, spedizione) => {
@@ -559,54 +639,144 @@ export default function SpedizioniPage() {
                         {index + 1}
                       </div>
                       
-                      <div className="ml-12">
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                              <Scale className="w-5 h-5 text-yellow-500" />
-                              <span className="text-2xl font-bold text-gray-800">{spedizione.peso}kg</span>
+                      {editingSpedizione?.id === spedizione.id ? (
+                        // Modalità modifica
+                        <div className="ml-12 space-y-4">
+                          <div className="flex justify-between items-start mb-4">
+                            <h4 className="text-lg font-semibold text-gray-900">Modifica Spedizione</h4>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Peso (kg)</label>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                value={editPeso}
+                                onChange={(e) => setEditPeso(e.target.value)}
+                                className="w-full"
+                                min="0.1"
+                              />
                             </div>
-                            
-                            <div className="flex gap-2 flex-wrap">
-                              {spedizione.pellicola && (
-                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                                  <Layers className="w-3 h-3" />
-                                  Pellicola x{spedizione.quantitaPellicole}
-                                </span>
-                              )}
-                              {spedizione.imballaggio && (
-                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                                  <Box className="w-3 h-3" />
-                                  Imballaggio x{spedizione.quantitaImballaggi}
-                                </span>
-                              )}
-                              <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${
-                                spedizione.metodoPagamento === 'CONTANTI' 
-                                  ? 'bg-green-100 text-green-700' 
-                                  : 'bg-blue-100 text-blue-700'
-                              }`}>
-                                {spedizione.metodoPagamento === 'CONTANTI' ? (
-                                  <Banknote className="w-3 h-3" />
-                                ) : (
-                                  <CreditCard className="w-3 h-3" />
-                                )}
-                                {spedizione.metodoPagamento === 'CONTANTI' ? 'Contanti' : 'POS'}
-                              </span>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Metodo Pagamento</label>
+                              <Select value={editMetodoPagamento} onValueChange={setEditMetodoPagamento}>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="CONTANTI">Contanti</SelectItem>
+                                  <SelectItem value="POS">POS</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Pellicole</label>
+                              <Input
+                                type="number"
+                                value={editPellicola}
+                                onChange={(e) => setEditPellicola(e.target.value)}
+                                className="w-full"
+                                min="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Imballaggi</label>
+                              <Input
+                                type="number"
+                                value={editImballaggio}
+                                onChange={(e) => setEditImballaggio(e.target.value)}
+                                className="w-full"
+                                min="0"
+                              />
                             </div>
                           </div>
                           
-                          <div className="text-right">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-sm text-gray-500">Turno:</span>
-                              <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium">
-                                {spedizione.turno}
-                              </span>
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {new Date(spedizione.createdAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
-                            </div>
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={cancelEditSpedizione}
+                            >
+                              Annulla
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleUpdateSpedizione}
+                              disabled={!editPeso}
+                            >
+                              Salva
+                            </Button>
                           </div>
                         </div>
+                      ) : (
+                        // Modalità visualizzazione
+                        <div className="ml-12">
+                          <div className="flex justify-between items-start mb-4">
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-2">
+                                <Scale className="w-5 h-5 text-yellow-500" />
+                                <span className="text-2xl font-bold text-gray-800">{spedizione.peso}kg</span>
+                              </div>
+                              
+                              <div className="flex gap-2 flex-wrap">
+                                {spedizione.pellicola && (
+                                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                                    <Layers className="w-3 h-3" />
+                                    Pellicola x{spedizione.quantitaPellicole}
+                                  </span>
+                                )}
+                                {spedizione.imballaggio && (
+                                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                                    <Box className="w-3 h-3" />
+                                    Imballaggio x{spedizione.quantitaImballaggi}
+                                  </span>
+                                )}
+                                <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${
+                                  spedizione.metodoPagamento === 'CONTANTI' 
+                                    ? 'bg-green-100 text-green-700' 
+                                    : 'bg-blue-100 text-blue-700'
+                                }`}>
+                                  {spedizione.metodoPagamento === 'CONTANTI' ? (
+                                    <Banknote className="w-3 h-3" />
+                                  ) : (
+                                    <CreditCard className="w-3 h-3" />
+                                  )}
+                                  {spedizione.metodoPagamento === 'CONTANTI' ? 'Contanti' : 'POS'}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="text-right">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditSpedizione(spedizione)}
+                                  className="p-1 h-8 w-8"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteSpedizione(spedizione.id)}
+                                  className="p-1 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-sm text-gray-500">Turno:</span>
+                                <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium">
+                                  {spedizione.turno}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {new Date(spedizione.createdAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            </div>
+                          </div>
                         
                         <div className="grid grid-cols-3 gap-4">
                           <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
@@ -648,7 +818,8 @@ export default function SpedizioniPage() {
                             </div>
                           </div>
                         </div>
-                      </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

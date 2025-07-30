@@ -1,17 +1,15 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Calendar as CalendarComponent } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Badge } from '@/components/ui/badge'
-import { Calendar as CalendarIcon, Clock, Plus, Trash2, Edit, CheckCircle, AlertCircle, ArrowLeft, Calendar, ListTodo, MoreHorizontal, User, Tag, ChevronDown, ChevronUp, X, Filter, XCircle, MoreVertical, LayoutGrid } from 'lucide-react'
+import { Clock, Plus, Trash2, CheckCircle, AlertCircle, Calendar, ListTodo, MoreHorizontal, User, X } from 'lucide-react'
 import { useSede } from '@/hooks/useSede'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -196,7 +194,15 @@ const TaskColumn = ({ title, icon, tasks, onUpdateStatus, onDelete }: {
 
 // Componente per il form di creazione task
 const TaskForm = ({ onSubmit, onCancel }: { 
-  onSubmit: (task: any) => Promise<void>, 
+  onSubmit: (task: {
+    titolo: string;
+    descrizione: string;
+    dataScadenza: string;
+    orarioInizio: string;
+    orarioFine: string;
+    priorita: number;
+    sede: string;
+  }) => Promise<void>, 
   onCancel: () => void 
 }) => {
   const { currentSede } = useSede()
@@ -225,10 +231,15 @@ const TaskForm = ({ onSubmit, onCancel }: {
       return
     }
     
+    if (!currentSede?.id) {
+      alert('Sede non selezionata')
+      return
+    }
+    
     await onSubmit({
       ...task,
       priorita: parseInt(task.priorita),
-      sede: currentSede?.id
+      sede: currentSede.id
     })
   }
 
@@ -351,7 +362,7 @@ export default function TodoList() {
   const calendarRef = useRef<HTMLDivElement>(null)
   const [filtroStato, setFiltroStato] = useState<string>('tutti')
   const [filtroPriorita, setFiltroPriorita] = useState<string>('tutti')
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+
   // Funzione per caricare i task
   const caricaTasks = useCallback(async () => {
     if (!currentSede) return
@@ -376,7 +387,15 @@ export default function TodoList() {
   }, [currentSede, dataSelezionata])
 
   // Funzione per aggiungere un task
-  const aggiungiTask = async (nuovoTask: any) => {
+  const aggiungiTask = async (nuovoTask: {
+    titolo: string;
+    descrizione: string;
+    dataScadenza: string;
+    orarioInizio: string;
+    orarioFine: string;
+    priorita: number;
+    sede: string;
+  }) => {
     try {
       const response = await fetch('/api/todolist', {
         method: 'POST',
@@ -499,30 +518,7 @@ export default function TodoList() {
       return grouped
     }, [tasks])
     
-    // Funzione per evidenziare i giorni con task
-    const getDayClass = (date: Date) => {
-      const dateString = format(date, 'yyyy-MM-dd')
-      const tasksForDay = tasksByDate[dateString] || []
-      
-      if (tasksForDay.length === 0) return ''
-      
-      // Controlla se ci sono task ad alta priorità
-      const hasHighPriority = tasksForDay.some(task => task.priorita === 2)
-      
-      if (hasHighPriority) {
-        return 'bg-red-100 text-red-900 font-bold'
-      }
-      
-      // Controlla se ci sono task a media priorità
-      const hasMediumPriority = tasksForDay.some(task => task.priorita === 1)
-      
-      if (hasMediumPriority) {
-        return 'bg-yellow-100 text-yellow-900 font-bold'
-      }
-      
-      // Altrimenti, task a bassa priorità
-      return 'bg-blue-100 text-blue-900 font-bold'
-    }
+
     
     return (
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
@@ -538,7 +534,7 @@ export default function TodoList() {
             },
           }}
           modifiersClassNames={{
-            booked: (date) => getDayClass(date),
+            booked: 'bg-blue-100 text-blue-900 font-bold',
           }}
         />
         

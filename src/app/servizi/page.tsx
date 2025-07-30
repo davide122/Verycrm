@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-import { ArrowLeft, Plus, Settings, Clock, TrendingUp, Star, Activity, Zap, Package, CheckCircle, AlertCircle, Award } from 'lucide-react'
+import { ArrowLeft, Plus, Settings, Clock, TrendingUp, Star, Activity, Zap, CheckCircle, Award, Edit, Trash2 } from 'lucide-react'
 import { useSede } from '@/hooks/useSede'
-import { formatCurrency, formatDate, getOpzioniServizi, calcolaPrezzoServizio, SERVIZI_DISPONIBILI } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 
 interface Servizio {
   value: string
@@ -28,6 +28,7 @@ interface ServizioEffettuato {
   costoTotale: number
   guadagno: number
   turno: string
+  sede: string
   createdAt: string
   metodoPagamento: string
   servizio: Servizio
@@ -56,6 +57,9 @@ export default function ServiziPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
   const [metodoPagamento, setMetodoPagamento] = useState('CONTANTI')
+  const [editingService, setEditingService] = useState<ServizioEffettuato | null>(null)
+  const [editQuantita, setEditQuantita] = useState('')
+  const [editMetodoPagamento, setEditMetodoPagamento] = useState('CONTANTI')
 
   useEffect(() => {
     fetchServizi()
@@ -189,6 +193,74 @@ export default function ServiziPage() {
       console.error('Errore nella creazione del servizio:', error)
       alert('Errore durante la creazione del servizio')
     }
+  }
+
+  const handleEditService = (servizio: ServizioEffettuato) => {
+    setEditingService(servizio)
+    setEditQuantita(servizio.quantita.toString())
+    setEditMetodoPagamento(servizio.metodoPagamento)
+  }
+
+  const handleUpdateService = async () => {
+    if (!editingService || !editQuantita) return
+
+    try {
+      const response = await fetch(`/api/servizi-effettuati/${editingService.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+           servizioId: editingService.servizioId,
+           quantita: parseInt(editQuantita),
+           turno: editingService.turno,
+           sede: currentSede?.id || editingService.sede,
+           metodoPagamento: editMetodoPagamento
+         })
+      })
+
+      if (response.ok) {
+        const servizioAggiornato = await response.json()
+        setServiziEffettuati(serviziEffettuati.map(s => 
+          s.id === editingService.id ? servizioAggiornato : s
+        ))
+        setEditingService(null)
+        setEditQuantita('')
+        setEditMetodoPagamento('CONTANTI')
+        alert('Servizio modificato con successo!')
+      } else {
+        throw new Error('Errore nella modifica del servizio')
+      }
+    } catch (error) {
+      console.error('Errore nella modifica del servizio:', error)
+      alert('Errore durante la modifica del servizio')
+    }
+  }
+
+  const handleDeleteService = async (id: number) => {
+    if (!confirm('Sei sicuro di voler eliminare questo servizio?')) return
+
+    try {
+      const response = await fetch(`/api/servizi-effettuati/${id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        setServiziEffettuati(serviziEffettuati.filter(s => s.id !== id))
+        alert('Servizio eliminato con successo!')
+      } else {
+        throw new Error('Errore nell\'eliminazione del servizio')
+      }
+    } catch (error) {
+      console.error('Errore nell\'eliminazione del servizio:', error)
+      alert('Errore durante l\'eliminazione del servizio')
+    }
+  }
+
+  const cancelEdit = () => {
+    setEditingService(null)
+    setEditQuantita('')
+    setEditMetodoPagamento('CONTANTI')
   }
 
   // Chiudi il dropdown quando si clicca fuori
@@ -597,36 +669,107 @@ export default function ServiziPage() {
               <div className="space-y-4">
                 {serviziEffettuati.map((servizio) => (
                   <div key={servizio.id} className="border border-gray-200 rounded-lg p-4 bg-white hover:bg-gray-50 transition-colors">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-lg">{servizio.servizio.label}</h3>
-                          <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                            servizio.metodoPagamento === 'CONTANTI' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                          }`}>
-                            <span>{servizio.metodoPagamento === 'CONTANTI' ? '💵' : '💳'}</span>
-                            {servizio.metodoPagamento === 'CONTANTI' ? 'Contanti' : 'POS'}
+                    {editingService?.id === servizio.id ? (
+                      // Modalità modifica
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-lg">{servizio.servizio.label}</h3>
+                            <p className="text-sm text-gray-600">{servizio.servizio.descrizione}</p>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-600">
-                          Quantità: {servizio.quantita} | Turno: {servizio.turno}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(servizio.createdAt).toLocaleTimeString('it-IT')}
-                        </p>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Quantità</label>
+                            <Input
+                              type="number"
+                              value={editQuantita}
+                              onChange={(e) => setEditQuantita(e.target.value)}
+                              className="w-full"
+                              min="1"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Metodo Pagamento</label>
+                            <Select value={editMetodoPagamento} onValueChange={setEditMetodoPagamento}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="CONTANTI">Contanti</SelectItem>
+                                <SelectItem value="POS">POS</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        
+                        <div className="flex justify-end space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={cancelEdit}
+                          >
+                            Annulla
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleUpdateService}
+                            disabled={!editQuantita}
+                          >
+                            Salva
+                          </Button>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-lg">{formatCurrency(servizio.prezzoCliente)}</p>
-                        <p className="text-sm text-yellow-600 font-medium">
-                          Guadagno: {formatCurrency(servizio.guadagno)}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Costo: {formatCurrency(servizio.costoTotale)}
-                        </p>
-
-
+                    ) : (
+                      // Modalità visualizzazione
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-lg">{servizio.servizio.label}</h3>
+                            <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                              servizio.metodoPagamento === 'CONTANTI' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              <span>{servizio.metodoPagamento === 'CONTANTI' ? '💵' : '💳'}</span>
+                              {servizio.metodoPagamento === 'CONTANTI' ? 'Contanti' : 'POS'}
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            Quantità: {servizio.quantita} | Turno: {servizio.turno}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(servizio.createdAt).toLocaleTimeString('it-IT')}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditService(servizio)}
+                              className="p-1 h-8 w-8"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteService(servizio.id)}
+                              className="p-1 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <p className="font-semibold text-lg">{formatCurrency(servizio.prezzoCliente)}</p>
+                          <p className="text-sm text-yellow-600 font-medium">
+                            Guadagno: {formatCurrency(servizio.guadagno)}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Costo: {formatCurrency(servizio.costoTotale)}
+                          </p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>

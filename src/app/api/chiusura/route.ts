@@ -9,7 +9,6 @@ export async function POST(request: NextRequest) {
       sede, 
       contantiTotali, 
       riepilogo, 
-      saldoDroppoint, 
       calcoloSaldo 
     } = body
 

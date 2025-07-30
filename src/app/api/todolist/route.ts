@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 // GET /api/todolist - Ottiene tutti i task per una data e sede specifiche
 export async function GET(request: NextRequest) {
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Preparazione dei dati per il database
-    const taskData: any = {
+    const taskData: Prisma.TodoTaskCreateInput = {
       titolo: body.titolo,
       descrizione: body.descrizione || null,
       sede: body.sede,

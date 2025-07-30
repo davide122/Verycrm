@@ -90,7 +90,6 @@ const formatDateTime = (dateString: string) => {
 }
 
 export default function ChiusuraPage() {
-  const { currentSede } = useSede()
   const [tipoChiusura, setTipoChiusura] = useState<'mattina' | 'sera'>('sera')
   const [sedeSelezionata, setSedeSelezionata] = useState<'ENTRAMBE' | 'SEDE_A' | 'SEDE_B'>('ENTRAMBE')
   const [contantiTotali, setContantiTotali] = useState<string>('')
@@ -105,11 +104,6 @@ export default function ChiusuraPage() {
     differenza: number
     corrispondenza: boolean
   } | null>(null)
-
-  // Carica i dati iniziali
-  useEffect(() => {
-    caricaDati()
-  }, [sedeSelezionata])
 
   const caricaDati = async () => {
     setLoading(true)
@@ -131,6 +125,11 @@ export default function ChiusuraPage() {
       setLoading(false)
     }
   }
+
+  // Carica i dati iniziali
+  useEffect(() => {
+    caricaDati()
+  }, [sedeSelezionata])
 
   // Calcola il saldo quando cambiano i contanti inseriti
   useEffect(() => {

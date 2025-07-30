@@ -30,7 +30,7 @@ import {
   TrendingDown,
   Settings
 } from 'lucide-react'
-import { formatCurrency, formatDate, SERVIZI_DISPONIBILI } from '@/lib/utils'
+import { formatCurrency, formatDate, getTurnoCorrente } from '@/lib/utils'
 import { useSede } from '@/hooks/useSede'
 import { generateChiusuraReport } from '@/lib/pdfGenerator'
 
@@ -108,12 +108,6 @@ export default function DashboardPage() {
   const [selectedTurno, setSelectedTurno] = useState<string>('all')
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (currentSede) {
-      fetchRiepilogo()
-    }
-  }, [selectedDate, selectedTurno, currentSede])
-
   const fetchRiepilogo = async () => {
     setLoading(true)
     try {
@@ -134,6 +128,12 @@ export default function DashboardPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (currentSede) {
+      fetchRiepilogo()
+    }
+  }, [selectedDate, selectedTurno, currentSede])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">

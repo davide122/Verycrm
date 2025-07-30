@@ -9,7 +9,7 @@ import { formatCurrency } from '@/lib/utils'
 import { useSede } from '@/hooks/useSede'
 
 export default function Home() {
-  const { currentSede, isLoading, loadData } = useSede()
+  const { currentSede, isLoading } = useSede()
   const [currentTime, setCurrentTime] = useState<Date | null>(null)
   const [stats, setStats] = useState({ servizi: 0, spedizioni: 0, guadagno: 0, entrate: 0, costi: 0 })
   const [mounted, setMounted] = useState(false)
@@ -82,7 +82,7 @@ export default function Home() {
       const interval = setInterval(loadRealData, 30000)
       return () => clearInterval(interval)
     }
-  }, [mounted, currentSede, loadData])
+  }, [mounted, currentSede])
 
   const currentShift = currentTime && currentTime.getHours() < 14 ? 'Mattina' : 'Pomeriggio'
   const shiftTime = currentTime && currentTime.getHours() < 14 ? '8:30-13:00' : '16:00-19:00'

@@ -1,22 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 // PATCH /api/todolist/[id] - Aggiorna parzialmente un task (es. solo lo stato)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: paramId } = await params
   try {
-    console.log(`PATCH /api/todolist/${params.id} - Inizio elaborazione`)
-    const id = parseInt(params.id)
+    console.log(`PATCH /api/todolist/${paramId} - Inizio elaborazione`)
+    const id = parseInt(paramId)
     
     if (isNaN(id)) {
-      console.error(`PATCH /api/todolist/${params.id} - ID non valido`)
+      console.error(`PATCH /api/todolist/${paramId} - ID non valido`)
       return NextResponse.json({ error: 'ID non valido' }, { status: 400 })
     }
     
     const body = await request.json()
-    console.log(`PATCH /api/todolist/${params.id} - Body ricevuto:`, body)
+    console.log(`PATCH /api/todolist/${paramId} - Body ricevuto:`, body)
 
     // Verifica che il task esista
     const taskEsistente = await prisma.todoTask.findUnique({
@@ -24,11 +26,11 @@ export async function PATCH(
     })
 
     if (!taskEsistente) {
-      console.error(`PATCH /api/todolist/${params.id} - Task non trovato`)
+      console.error(`PATCH /api/todolist/${paramId} - Task non trovato`)
       return NextResponse.json({ error: 'Task non trovato' }, { status: 404 })
     }
 
-    console.log(`PATCH /api/todolist/${params.id} - Task trovato, procedo con l'aggiornamento`)
+    console.log(`PATCH /api/todolist/${paramId} - Task trovato, procedo con l'aggiornamento`)
     
     try {
       // Aggiornamento del task nel database
@@ -37,17 +39,17 @@ export async function PATCH(
         data: body
       })
       
-      console.log(`PATCH /api/todolist/${params.id} - Task aggiornato con successo:`, taskAggiornato.id)
+      console.log(`PATCH /api/todolist/${paramId} - Task aggiornato con successo:`, taskAggiornato.id)
       return NextResponse.json(taskAggiornato)
     } catch (dbError) {
-      console.error(`PATCH /api/todolist/${params.id} - Errore nell'aggiornamento:`, dbError)
+      console.error(`PATCH /api/todolist/${paramId} - Errore nell'aggiornamento:`, dbError)
       return NextResponse.json({ 
         error: 'Errore nell\'aggiornamento del task', 
         message: dbError instanceof Error ? dbError.message : 'Errore sconosciuto'
       }, { status: 500 })
     }
   } catch (error) {
-    console.error(`Errore nella richiesta PATCH /api/todolist/${params.id}:`, error)
+    console.error(`Errore nella richiesta PATCH /api/todolist/${paramId}:`, error)
     return NextResponse.json({ error: 'Errore interno del server' }, { status: 500 })
   }
 }
@@ -55,14 +57,15 @@ export async function PATCH(
 // GET /api/todolist/[id] - Ottiene un task specifico
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: paramId } = await params
   try {
-    console.log(`GET /api/todolist/${params.id} - Inizio elaborazione`)
-    const id = parseInt(params.id)
+    console.log(`GET /api/todolist/${paramId} - Inizio elaborazione`)
+    const id = parseInt(paramId)
     
     if (isNaN(id)) {
-      console.error(`GET /api/todolist/${params.id} - ID non valido`)
+      console.error(`GET /api/todolist/${paramId} - ID non valido`)
       return NextResponse.json({ error: 'ID non valido' }, { status: 400 })
     }
 
@@ -72,21 +75,21 @@ export async function GET(
       })
 
       if (!task) {
-        console.error(`GET /api/todolist/${params.id} - Task non trovato`)
+        console.error(`GET /api/todolist/${paramId} - Task non trovato`)
         return NextResponse.json({ error: 'Task non trovato' }, { status: 404 })
       }
       
-      console.log(`GET /api/todolist/${params.id} - Task trovato con successo`)
+      console.log(`GET /api/todolist/${paramId} - Task trovato con successo`)
       return NextResponse.json(task)
     } catch (dbError) {
-      console.error(`GET /api/todolist/${params.id} - Errore nella ricerca:`, dbError)
+      console.error(`GET /api/todolist/${paramId} - Errore nella ricerca:`, dbError)
       return NextResponse.json({ 
         error: 'Errore nella ricerca del task', 
         message: dbError instanceof Error ? dbError.message : 'Errore sconosciuto'
       }, { status: 500 })
     }
   } catch (error) {
-    console.error(`Errore nella richiesta GET /api/todolist/${params.id}:`, error)
+    console.error(`Errore nella richiesta GET /api/todolist/${paramId}:`, error)
     return NextResponse.json({ error: 'Errore interno del server' }, { status: 500 })
   }
 }
@@ -94,19 +97,20 @@ export async function GET(
 // PUT /api/todolist/[id] - Aggiorna un task esistente
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: paramId } = await params
   try {
-    console.log(`PUT /api/todolist/${params.id} - Inizio elaborazione`)
-    const id = parseInt(params.id)
+    console.log(`PUT /api/todolist/${paramId} - Inizio elaborazione`)
+    const id = parseInt(paramId)
     
     if (isNaN(id)) {
-      console.error(`PUT /api/todolist/${params.id} - ID non valido`)
+      console.error(`PUT /api/todolist/${paramId} - ID non valido`)
       return NextResponse.json({ error: 'ID non valido' }, { status: 400 })
     }
     
     const body = await request.json()
-    console.log(`PUT /api/todolist/${params.id} - Body ricevuto:`, body)
+    console.log(`PUT /api/todolist/${paramId} - Body ricevuto:`, body)
 
     // Verifica che il task esista
     const taskEsistente = await prisma.todoTask.findUnique({
@@ -114,14 +118,14 @@ export async function PUT(
     })
 
     if (!taskEsistente) {
-      console.error(`PUT /api/todolist/${params.id} - Task non trovato`)
+      console.error(`PUT /api/todolist/${paramId} - Task non trovato`)
       return NextResponse.json({ error: 'Task non trovato' }, { status: 404 })
     }
     
-    console.log(`PUT /api/todolist/${params.id} - Task trovato, procedo con l'aggiornamento`)
+    console.log(`PUT /api/todolist/${paramId} - Task trovato, procedo con l'aggiornamento`)
 
     // Preparazione dei dati per l'aggiornamento
-    const taskData: any = {
+    const taskData: Record<string, unknown> = {
       titolo: body.titolo !== undefined ? body.titolo : taskEsistente.titolo,
       descrizione: body.descrizione !== undefined ? body.descrizione : taskEsistente.descrizione,
       sede: body.sede !== undefined ? body.sede : taskEsistente.sede,
@@ -138,7 +142,7 @@ export async function PUT(
     if (body.orarioInizio !== undefined) {
       if (body.orarioInizio) {
         // Se c'è solo l'orario, combiniamo con la data di scadenza o la data corrente
-        const baseDate = taskData.dataScadenza || taskEsistente.dataScadenza || new Date()
+        const baseDate = (taskData.dataScadenza as Date) || taskEsistente.dataScadenza || new Date()
         const [hours, minutes] = body.orarioInizio.split(':').map(Number)
         
         const orarioInizio = new Date(baseDate)
@@ -153,7 +157,7 @@ export async function PUT(
     if (body.orarioFine !== undefined) {
       if (body.orarioFine) {
         // Se c'è solo l'orario, combiniamo con la data di scadenza o la data corrente
-        const baseDate = taskData.dataScadenza || taskEsistente.dataScadenza || new Date()
+        const baseDate = (taskData.dataScadenza as Date) || taskEsistente.dataScadenza || new Date()
         const [hours, minutes] = body.orarioFine.split(':').map(Number)
         
         const orarioFine = new Date(baseDate)
@@ -172,17 +176,17 @@ export async function PUT(
         data: taskData
       })
       
-      console.log(`PUT /api/todolist/${params.id} - Task aggiornato con successo:`, taskAggiornato.id)
+      console.log(`PUT /api/todolist/${paramId} - Task aggiornato con successo:`, taskAggiornato.id)
       return NextResponse.json(taskAggiornato)
     } catch (dbError) {
-      console.error(`PUT /api/todolist/${params.id} - Errore nell'aggiornamento:`, dbError)
+      console.error(`PUT /api/todolist/${paramId} - Errore nell'aggiornamento:`, dbError)
       return NextResponse.json({ 
         error: 'Errore nell\'aggiornamento del task', 
         message: dbError instanceof Error ? dbError.message : 'Errore sconosciuto'
       }, { status: 500 })
     }
   } catch (error) {
-    console.error(`Errore nella richiesta PUT /api/todolist/${params.id}:`, error)
+    console.error(`Errore nella richiesta PUT /api/todolist/${paramId}:`, error)
     return NextResponse.json({ error: 'Errore interno del server' }, { status: 500 })
   }
 }
@@ -190,14 +194,15 @@ export async function PUT(
 // DELETE /api/todolist/[id] - Elimina un task
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: paramId } = await params
   try {
-    console.log(`DELETE /api/todolist/${params.id} - Inizio elaborazione`)
-    const id = parseInt(params.id)
+    console.log(`DELETE /api/todolist/${paramId} - Inizio elaborazione`)
+    const id = parseInt(paramId)
     
     if (isNaN(id)) {
-      console.error(`DELETE /api/todolist/${params.id} - ID non valido`)
+      console.error(`DELETE /api/todolist/${paramId} - ID non valido`)
       return NextResponse.json({ error: 'ID non valido' }, { status: 400 })
     }
 
@@ -207,11 +212,11 @@ export async function DELETE(
     })
 
     if (!taskEsistente) {
-      console.error(`DELETE /api/todolist/${params.id} - Task non trovato`)
+      console.error(`DELETE /api/todolist/${paramId} - Task non trovato`)
       return NextResponse.json({ error: 'Task non trovato' }, { status: 404 })
     }
     
-    console.log(`DELETE /api/todolist/${params.id} - Task trovato, procedo con l'eliminazione`)
+    console.log(`DELETE /api/todolist/${paramId} - Task trovato, procedo con l'eliminazione`)
 
     // Eliminazione del task
     try {
@@ -219,17 +224,17 @@ export async function DELETE(
         where: { id }
       })
       
-      console.log(`DELETE /api/todolist/${params.id} - Task eliminato con successo`)
+      console.log(`DELETE /api/todolist/${paramId} - Task eliminato con successo`)
       return NextResponse.json({ success: true })
     } catch (dbError) {
-      console.error(`DELETE /api/todolist/${params.id} - Errore nell'eliminazione:`, dbError)
+      console.error(`DELETE /api/todolist/${paramId} - Errore nell'eliminazione:`, dbError)
       return NextResponse.json({ 
         error: 'Errore nell\'eliminazione del task', 
         message: dbError instanceof Error ? dbError.message : 'Errore sconosciuto'
       }, { status: 500 })
     }
   } catch (error) {
-    console.error(`Errore nella richiesta DELETE /api/todolist/${params.id}:`, error)
+    console.error(`Errore nella richiesta DELETE /api/todolist/${paramId}:`, error)
     return NextResponse.json({ error: 'Errore interno del server' }, { status: 500 })
   }
 }

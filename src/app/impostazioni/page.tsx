@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { formatCurrency } from '@/lib/utils'
-import { Settings, Save, RotateCcw, Euro, Calculator, TrendingUp, ArrowLeft, Plus, Trash2, Edit } from 'lucide-react'
+import { Settings, Euro, ArrowLeft, Plus, Trash2, Edit } from 'lucide-react'
 import { useSede } from '@/hooks/useSede'
 
 interface Servizio {
@@ -25,7 +25,6 @@ interface NuovoServizio {
 }
 
 export default function ImpostazioniPage() {
-  const { currentSede } = useSede()
   const [servizi, setServizi] = useState<Servizio[]>([])
   const [loading, setLoading] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
