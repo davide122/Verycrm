@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,49 +8,44 @@ datasource db {
 }
 
 model Servizio {
-  id            Int      @id @default(autoincrement())
+  id            Int                  @id @default(autoincrement())
   nome          String
-  prezzoCliente Float    // Prezzo che paga il cliente
-  costoNetto    Float    // Costo a noi, senza IVA
-  ivaPercent    Float    @default(22)
+  prezzoCliente Float
+  costoNetto    Float
+  ivaPercent    Float                @default(22)
   operazioni    ServizioEffettuato[]
 }
 
-enum MetodoPagamento {
-  CONTANTI
-  POS
-}
-
 model ServizioEffettuato {
-  id            Int      @id @default(autoincrement())
-  servizioId    Int      // Torna a Int per la relazione
-  servizio      Servizio @relation(fields: [servizioId], references: [id])
-  quantita      Int
-  prezzoCliente Float
-  costoTotale   Float
-  guadagno      Float
-  turno         String   // mattina / pomeriggio
-  sede          String   // aragona / porto-empedocle
+  id              Int             @id @default(autoincrement())
+  servizioId      Int
+  quantita        Int
+  prezzoCliente   Float
+  costoTotale     Float
+  guadagno        Float
+  turno           String
+  createdAt       DateTime        @default(now())
+  sede            String
   metodoPagamento MetodoPagamento @default(CONTANTI)
-  createdAt     DateTime @default(now())
+  servizio        Servizio        @relation(fields: [servizioId], references: [id])
 }
 
 model Spedizione {
-  id            Int      @id @default(autoincrement())
-  peso          Float
-  pellicola     Boolean  @default(false)
-  quantitaPellicole Int  @default(1)  // Quantità pellicole (x1, x2, x3, x4)
-  imballaggio   Boolean  @default(false)
-  quantitaImballaggi Int @default(1)  // Quantità imballaggi (x1, x2, x3, x4)
-  prezzoPoste   Float    // Prezzo base Poste
-  iva           Float
-  rimborsoSpese Float
-  prezzoCliente Float    // Prezzo al cliente
-  guadagno      Float
-  turno         String
-  sede          String   // aragona / porto-empedocle
-  metodoPagamento MetodoPagamento @default(CONTANTI)
-  createdAt     DateTime @default(now())
+  id                 Int             @id @default(autoincrement())
+  peso               Float
+  pellicola          Boolean         @default(false)
+  imballaggio        Boolean         @default(false)
+  prezzoPoste        Float
+  iva                Float
+  rimborsoSpese      Float
+  prezzoCliente      Float
+  guadagno           Float
+  turno              String
+  createdAt          DateTime        @default(now())
+  sede               String
+  metodoPagamento    MetodoPagamento @default(CONTANTI)
+  quantitaImballaggi Int             @default(1)
+  quantitaPellicole  Int             @default(1)
 }
 
 model Chiusura {
@@ -67,26 +59,49 @@ model Chiusura {
 }
 
 model SaldoDroppoint {
-  id          Int      @id @default(autoincrement())
-  data        DateTime @db.Date
-  saldoIniziale Float  // Saldo all'apertura del sistema
-  saldoFinale   Float? // Saldo a chiusura (opzionale)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relazione con le ricariche
-  ricariche   RicaricaDroppoint[]
-  
-  @@unique([data]) // Un solo record per data
+  id            Int                 @id @default(autoincrement())
+  data          DateTime            @unique @db.Date
+  saldoIniziale Float
+  saldoFinale   Float?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  ricariche     RicaricaDroppoint[]
 }
 
 model RicaricaDroppoint {
-  id          Int      @id @default(autoincrement())
+  id          Int            @id @default(autoincrement())
   saldoId     Int
-  saldo       SaldoDroppoint @relation(fields: [saldoId], references: [id], onDelete: Cascade)
   importo     Float
   descrizione String?
-  turno       String   // mattina / pomeriggio
-  sede        String   // aragona / porto-empedocle
-  createdAt   DateTime @default(now())
+  turno       String
+  sede        String
+  createdAt   DateTime       @default(now())
+  saldo       SaldoDroppoint @relation(fields: [saldoId], references: [id], onDelete: Cascade)
+}
+
+model TodoTask {
+  id           Int       @id @default(autoincrement())
+  titolo       String
+  descrizione  String?
+  dataScadenza DateTime?
+  orarioInizio DateTime?
+  orarioFine   DateTime?
+  stato        StatoTask @default(DA_FARE)
+  priorita     Int       @default(0)
+  sede         String
+  assegnatoA   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+enum MetodoPagamento {
+  CONTANTI
+  POS
+}
+
+enum StatoTask {
+  DA_FARE
+  IN_CORSO
+  COMPLETATO
+  ANNULLATO
 }

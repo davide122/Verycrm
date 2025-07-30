@@ -139,11 +139,19 @@ export default function Home() {
     },
     {
       icon: Calculator,
-      title: 'Chiusura Unificata',
-      description: 'Sistema completo di chiusura con verifica saldo droppoint per mattina/sera e singola sede/entrambe',
+      title: 'Chiusura Cassa',
+      description: 'Controllo contanti, calcolo differenze e gestione chiusura giornaliera',
       href: '/chiusura',
-      color: 'bg-gradient-to-r from-green-600 to-emerald-600',
-      stats: 'Mattina/Sera • Sede A/B/Entrambe'
+      color: 'bg-green-600',
+      stats: 'Verifica contanti'
+    },
+    {
+      icon: Building2,
+      title: 'Chiusura Completa',
+      description: 'Gestione chiusura di entrambe le sedi',
+      href: '/chiusura-completa',
+      color: 'bg-purple-600',
+      stats: 'Porto Empedocle + Aragona'
     },
     {
       icon: Settings,

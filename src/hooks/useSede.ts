@@ -12,12 +12,12 @@ export interface SedeInfo {
 const sediInfo: Record<string, SedeInfo> = {
   'aragona': {
     id: 'aragona',
-    nome: 'Ufficio Postale Aragona',
+    nome: 'Aragona',
     citta: 'Aragona'
   },
   'porto-empedocle': {
     id: 'porto-empedocle',
-    nome: 'Ufficio Postale Porto Empedocle',
+    nome: ' Porto Empedocle',
     citta: 'Porto Empedocle'
   }
 }

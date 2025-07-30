@@ -18,17 +18,17 @@ interface Sede {
 const sedi: Sede[] = [
   {
     id: 'aragona',
-    nome: 'Ufficio Postale Aragona',
+    nome: 'Aragona',
     citta: 'Aragona',
-    descrizione: 'Sede principale - Gestione servizi completi',
+    descrizione: 'Sede secondaria ',
     colore: 'from-blue-500 to-cyan-500',
     icona: Building2
   },
   {
     id: 'porto-empedocle',
-    nome: 'Ufficio Postale Porto Empedocle',
+    nome: 'Porto Empedocle',
     citta: 'Porto Empedocle',
-    descrizione: 'Sede secondaria - Servizi specializzati',
+    descrizione: 'Sede principale',
     colore: 'from-purple-500 to-pink-500',
     icona: MapPin
   }
