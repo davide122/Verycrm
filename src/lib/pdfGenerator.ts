@@ -54,6 +54,18 @@ interface RiepilogoData {
     costi: number
     guadagni: number
   }
+  pagamenti: {
+    servizi: {
+      contanti: number
+      pos: number
+    }
+    spedizioni: {
+      contanti: number
+      pos: number
+    }
+    totaliContanti: number
+    totaliPos: number
+  }
 }
 
 interface SedeInfo {
@@ -161,26 +173,42 @@ export function generateChiusuraReport(
     
     yPosition += 15
     
-    const serviziData = riepilogo.servizi.lista.map(servizio => [
-      servizio.servizio.nome,
-      servizio.quantita.toString(),
-      formatCurrency(servizio.prezzoCliente),
-      formatCurrency(servizio.costoTotale),
-      formatCurrency(servizio.guadagno)
-    ])
+    const serviziData = riepilogo.servizi.lista.map(servizio => {
+      // Calcola l'IVA solo se c'è un costo aziendale (22% sul costo aziendale)
+      const iva = servizio.costoTotale > 0 ? servizio.costoTotale * 0.22 : 0
+      const costoTotaleConIva = servizio.costoTotale + iva
+      const guadagnoNettoConIva = servizio.prezzoCliente - costoTotaleConIva
+      
+      return [
+        servizio.servizio.nome,
+        servizio.quantita.toString(),
+        formatCurrency(servizio.prezzoCliente),
+        formatCurrency(costoTotaleConIva),
+        formatCurrency(guadagnoNettoConIva),
+        formatCurrency(iva)
+      ]
+    })
+    
+    // Calcola totali con IVA
+    const totalIvaServizi = riepilogo.servizi.lista.reduce((acc, servizio) => {
+      return acc + (servizio.costoTotale > 0 ? servizio.costoTotale * 0.22 : 0)
+    }, 0)
+    const totalCostiConIva = riepilogo.servizi.totali.costi + totalIvaServizi
+    const totalGuadagnoConIva = riepilogo.servizi.totali.entrate - totalCostiConIva
     
     // Aggiungi riga totali
     serviziData.push([
       'TOTALE SERVIZI',
       riepilogo.servizi.totali.quantita.toString(),
       formatCurrency(riepilogo.servizi.totali.entrate),
-      formatCurrency(riepilogo.servizi.totali.costi),
-      formatCurrency(riepilogo.servizi.totali.guadagni)
+      formatCurrency(totalCostiConIva),
+      formatCurrency(totalGuadagnoConIva),
+      formatCurrency(totalIvaServizi)
     ])
     
     autoTable(doc, {
       startY: yPosition,
-      head: [['Servizio', 'Qtà', 'Entrate', 'Costi', 'Guadagno']],
+      head: [['Servizio', 'Qtà', 'Entrate', 'Costi', 'Guadagno', 'IVA']],
       body: serviziData,
       theme: 'grid',
       headStyles: {
@@ -270,7 +298,62 @@ export function generateChiusuraReport(
       },
       margin: { left: 20, right: 20 }
     })
+    
+    yPosition = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 20
   }
+  
+  // Sezione Riepilogo Pagamenti
+  // Controlla se serve una nuova pagina
+  if (yPosition > 200) {
+    doc.addPage()
+    yPosition = 20
+  }
+  
+  doc.setFillColor(...secondaryColor)
+  doc.rect(20, yPosition, 170, 8, 'F')
+  doc.setTextColor(255, 255, 255)
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'bold')
+  doc.text('RIEPILOGO PAGAMENTI', 25, yPosition + 6)
+  
+  yPosition += 15
+  
+  const pagamentiData = [
+    ['Servizi - Contanti', formatCurrency(riepilogo.pagamenti.servizi.contanti)],
+    ['Servizi - POS', formatCurrency(riepilogo.pagamenti.servizi.pos)],
+    ['Spedizioni - Contanti', formatCurrency(riepilogo.pagamenti.spedizioni.contanti)],
+    ['Spedizioni - POS', formatCurrency(riepilogo.pagamenti.spedizioni.pos)],
+    ['TOTALE CONTANTI', formatCurrency(riepilogo.pagamenti.totaliContanti)],
+    ['TOTALE POS', formatCurrency(riepilogo.pagamenti.totaliPos)]
+  ]
+  
+  autoTable(doc, {
+    startY: yPosition,
+    head: [['Metodo Pagamento', 'Importo']],
+    body: pagamentiData,
+    theme: 'grid',
+    headStyles: {
+      fillColor: primaryColor,
+      textColor: [255, 255, 255],
+      fontSize: 12,
+      fontStyle: 'bold'
+    },
+    bodyStyles: {
+      fontSize: 11,
+      textColor: textColor
+    },
+    alternateRowStyles: {
+      fillColor: lightGray
+    },
+    // Evidenzia le righe dei totali
+    didParseCell: function(data: CellHookData) {
+      if (data.row.index >= pagamentiData.length - 2) {
+        data.cell.styles.fillColor = [230, 230, 230]
+        data.cell.styles.fontStyle = 'bold'
+      }
+    },
+    margin: { left: 20, right: 20 }
+  })
   
   // Footer
   const pageCount = (doc as jsPDF & { getNumberOfPages(): number }).getNumberOfPages()

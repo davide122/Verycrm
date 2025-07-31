@@ -489,32 +489,35 @@ export default function DashboardPage() {
                     {riepilogo.servizi.lista.length > 0 ? (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <h4 className="font-semibold text-gray-800">🔥 Servizi Recenti</h4>
+                          <h4 className="font-semibold text-gray-800">🔥 Tutti i Servizi</h4>
                           <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">
-                            Top {Math.min(3, riepilogo.servizi.lista.length)}
+                            {riepilogo.servizi.lista.length} servizi
                           </span>
                         </div>
-                        {riepilogo.servizi.lista.slice(0, 3).map((servizio: ServizioEffettuato, index: number) => (
-                          <div key={servizio.id} className="bg-gradient-to-r from-gray-50 to-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                                  {index + 1}
+                        <div className="max-h-64 overflow-y-auto space-y-3 pr-2">
+                          {riepilogo.servizi.lista.map((servizio: ServizioEffettuato, index: number) => (
+                            <div key={servizio.id} className="bg-gradient-to-r from-gray-50 to-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                    {index + 1}
+                                  </div>
+                                  <div>
+                                    <p className="font-semibold text-gray-800">{servizio.servizio.nome}</p>
+                                    <p className="text-sm text-gray-600">Quantità: {servizio.quantita} • Turno: {servizio.turno}</p>
+                                    <p className="text-xs text-gray-500">{new Date(servizio.createdAt).toLocaleTimeString('it-IT')}</p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="font-semibold text-gray-800">{servizio.servizio.nome}</p>
-                                  <p className="text-sm text-gray-600">Quantità: {servizio.quantita}</p>
+                                <div className="text-right">
+                                  <p className="font-bold text-emerald-600 text-lg">
+                                    {formatCurrency(servizio.prezzoCliente)}
+                                  </p>
+                                  <p className="text-xs text-gray-500">Guadagno: {formatCurrency(servizio.guadagno)}</p>
                                 </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-bold text-emerald-600 text-lg">
-                                  {formatCurrency(servizio.prezzoCliente)}
-                                </p>
-                                <p className="text-xs text-gray-500">per unità</p>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     ) : (
                       <div className="text-center py-8">
@@ -574,33 +577,35 @@ export default function DashboardPage() {
                     {riepilogo.spedizioni.lista.length > 0 ? (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <h4 className="font-semibold text-gray-800">🚀 Spedizioni Recenti</h4>
+                          <h4 className="font-semibold text-gray-800">🚀 Tutte le Spedizioni</h4>
                           <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-medium">
-                            Top {Math.min(3, riepilogo.spedizioni.lista.length)}
+                            {riepilogo.spedizioni.lista.length} spedizioni
                           </span>
                         </div>
-                        {riepilogo.spedizioni.lista.slice(0, 3).map((spedizione: Spedizione, index: number) => (
-                          <div key={spedizione.id} className="bg-gradient-to-r from-gray-50 to-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                                  {index + 1}
+                        <div className="max-h-64 overflow-y-auto space-y-3 pr-2">
+                          {riepilogo.spedizioni.lista.map((spedizione: Spedizione, index: number) => (
+                            <div key={spedizione.id} className="bg-gradient-to-r from-gray-50 to-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                    {index + 1}
+                                  </div>
+                                  <div>
+                                    <p className="font-semibold text-gray-800">Pacco {spedizione.peso}kg</p>
+                                    <p className="text-sm text-gray-600">Rimborso spese: {formatCurrency(spedizione.rimborsoSpese || 0)}</p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="font-semibold text-gray-800">Pacco {spedizione.peso}kg</p>
-                                  <p className="text-sm text-gray-600">Spedizione standard</p>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-bold text-orange-600 text-lg">
-                                  {formatCurrency(spedizione.prezzoCliente)}
-                                </p>
-                                <p className="text-xs text-gray-500">totale</p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                                <div className="text-right">
+                                   <p className="font-bold text-orange-600 text-lg">
+                                     {formatCurrency(spedizione.prezzoCliente)}
+                                   </p>
+                                   <p className="text-xs text-gray-500">Guadagno: {formatCurrency(spedizione.guadagno)}</p>
+                                 </div>
+                               </div>
+                             </div>
+                           ))}
+                         </div>
+                       </div>
                     ) : (
                       <div className="text-center py-8">
                         <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">

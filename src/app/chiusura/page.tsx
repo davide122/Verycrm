@@ -6,10 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-// import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-// import { Separator } from '@/components/ui/separator'
-// import { Badge } from '@/components/ui/badge'
-// import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
   Clock, 
   Sun, 
@@ -91,14 +87,16 @@ const formatDateTime = (dateString: string) => {
 
 export default function ChiusuraPage() {
   const [tipoChiusura, setTipoChiusura] = useState<'mattina' | 'sera'>('sera')
-  const [sedeSelezionata, setSedeSelezionata] = useState<'ENTRAMBE' | 'SEDE_A' | 'SEDE_B'>('ENTRAMBE')
-  const [contantiTotali, setContantiTotali] = useState<string>('')
+  const [contantiAragona, setContantiAragona] = useState<string>('')
+  const [contantiPortoEmpedocle, setContantiPortoEmpedocle] = useState<string>('')
   const [riepilogo, setRiepilogo] = useState<RiepilogoData | null>(null)
   const [saldoDroppoint, setSaldoDroppoint] = useState<SaldoDroppoint[]>([])
   const [loading, setLoading] = useState(false)
   const [calcoloSaldo, setCalcoloSaldo] = useState<{
-    contantiInseriti: number
-    costiContanti: number
+    contantiAragona: number
+    contantiPortoEmpedocle: number
+    contantiTotali: number
+    entrateContanti: number
     saldoCalcolato: number
     saldoDroppointEffettivo: number
     differenza: number
@@ -110,13 +108,13 @@ export default function ChiusuraPage() {
     try {
       const oggi = new Date().toISOString().split('T')[0]
       
-      // Carica riepilogo
-      const riepilogoRes = await fetch(`/api/riepilogo?sede=${sedeSelezionata}&data=${oggi}`)
+      // Carica riepilogo per entrambe le sedi
+      const riepilogoRes = await fetch(`/api/riepilogo?sede=ENTRAMBE&data=${oggi}`)
       const riepilogoData = await riepilogoRes.json()
       setRiepilogo(riepilogoData.riepilogo)
 
-      // Carica saldo droppoint
-      const saldoRes = await fetch(`/api/saldo-droppoint?sede=${sedeSelezionata}&data=${oggi}`)
+      // Carica saldo droppoint per entrambe le sedi
+      const saldoRes = await fetch(`/api/saldo-droppoint?sede=ENTRAMBE&data=${oggi}`)
       const saldoData = await saldoRes.json()
       setSaldoDroppoint(saldoData.saldi || [])
     } catch (error) {
@@ -129,14 +127,16 @@ export default function ChiusuraPage() {
   // Carica i dati iniziali
   useEffect(() => {
     caricaDati()
-  }, [sedeSelezionata])
+  }, [])
 
   // Calcola il saldo quando cambiano i contanti inseriti
   useEffect(() => {
-    if (contantiTotali && riepilogo && saldoDroppoint.length > 0) {
-      const contantiInseriti = parseFloat(contantiTotali)
-      const costiContanti = riepilogo.pagamenti.totaliContanti
-      const saldoCalcolato = contantiInseriti - costiContanti
+    if (contantiAragona && contantiPortoEmpedocle && riepilogo && saldoDroppoint.length > 0) {
+      const contantiAragonaNum = parseFloat(contantiAragona) || 0
+      const contantiPortoEmpedocleNum = parseFloat(contantiPortoEmpedocle) || 0
+      const contantiTotali = contantiAragonaNum + contantiPortoEmpedocleNum
+      const entrateContanti = riepilogo.pagamenti.totaliContanti
+      const saldoCalcolato = contantiTotali - entrateContanti
       
       // Calcola il saldo droppoint effettivo (somma di tutti i saldi finali)
       const saldoDroppointEffettivo = saldoDroppoint.reduce((sum, saldo) => sum + saldo.saldoFinale, 0)
@@ -145,8 +145,10 @@ export default function ChiusuraPage() {
       const corrispondenza = Math.abs(differenza) < 0.01 // Tolleranza di 1 centesimo
 
       setCalcoloSaldo({
-        contantiInseriti,
-        costiContanti,
+        contantiAragona: contantiAragonaNum,
+        contantiPortoEmpedocle: contantiPortoEmpedocleNum,
+        contantiTotali,
+        entrateContanti,
         saldoCalcolato,
         saldoDroppointEffettivo,
         differenza,
@@ -155,11 +157,11 @@ export default function ChiusuraPage() {
     } else {
       setCalcoloSaldo(null)
     }
-  }, [contantiTotali, riepilogo, saldoDroppoint])
+  }, [contantiAragona, contantiPortoEmpedocle, riepilogo, saldoDroppoint])
 
   const eseguiChiusura = async () => {
-    if (!contantiTotali || !calcoloSaldo) {
-      alert('Inserisci i contanti totali per procedere')
+    if (!contantiAragona || !contantiPortoEmpedocle || !calcoloSaldo) {
+      alert('Inserisci i contanti per entrambe le sedi per procedere')
       return
     }
 
@@ -172,8 +174,10 @@ export default function ChiusuraPage() {
         },
         body: JSON.stringify({
           tipoChiusura,
-          sede: sedeSelezionata,
-          contantiTotali: parseFloat(contantiTotali),
+          sede: 'ENTRAMBE',
+          contantiAragona: parseFloat(contantiAragona),
+          contantiPortoEmpedocle: parseFloat(contantiPortoEmpedocle),
+          contantiTotali: calcoloSaldo.contantiTotali,
           riepilogo,
           saldoDroppoint,
           calcoloSaldo
@@ -183,7 +187,8 @@ export default function ChiusuraPage() {
       if (response.ok) {
         alert('Chiusura completata con successo!')
         // Reset form
-        setContantiTotali('')
+        setContantiAragona('')
+        setContantiPortoEmpedocle('')
         setCalcoloSaldo(null)
         caricaDati()
       } else {
@@ -222,7 +227,7 @@ export default function ChiusuraPage() {
             Configurazione Chiusura
           </CardTitle>
           <CardDescription className="text-blue-600">
-            Seleziona il tipo di chiusura e la sede
+            Seleziona il tipo di chiusura
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -260,128 +265,103 @@ export default function ChiusuraPage() {
               </div>
             </div>
           </div>
-
-          {/* Sede */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium text-blue-800">Sede</Label>
-            <Select value={sedeSelezionata} onValueChange={(value: 'ENTRAMBE' | 'SEDE_A' | 'SEDE_B') => setSedeSelezionata(value)}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ENTRAMBE">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4" />
-                    Entrambe le Sedi
-                  </div>
-                </SelectItem>
-                <SelectItem value="SEDE_A">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    Sede A
-                  </div>
-                </SelectItem>
-                <SelectItem value="SEDE_B">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    Sede B
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </CardContent>
       </Card>
 
-      {/* Inserimento Contanti */}
+      {/* Inserimento Contanti per Sede */}
       <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-green-800">
             <Euro className="w-5 h-5" />
-            Contanti Totali in Cassa
+            Contanti per Sede
           </CardTitle>
           <CardDescription className="text-green-600">
-            Inserisci l&apos;importo totale dei contanti presenti in cassa
+            Inserisci l&apos;importo dei contanti presenti in ogni sede
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <Label htmlFor="contanti" className="text-sm font-medium text-green-800">
-              Importo Contanti (€)
-            </Label>
-            <Input
-              id="contanti"
-              type="number"
-              step="0.01"
-              placeholder="0.00"
-              value={contantiTotali}
-              onChange={(e) => setContantiTotali(e.target.value)}
-              className="text-lg font-semibold"
-            />
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <Label htmlFor="contanti-aragona" className="text-sm font-medium text-green-800">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Contanti Aragona (€)
+                </div>
+              </Label>
+              <Input
+                id="contanti-aragona"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={contantiAragona}
+                onChange={(e) => setContantiAragona(e.target.value)}
+                className="text-lg font-semibold"
+              />
+            </div>
+            <div className="space-y-3">
+              <Label htmlFor="contanti-porto" className="text-sm font-medium text-green-800">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Contanti Porto Empedocle (€)
+                </div>
+              </Label>
+              <Input
+                id="contanti-porto"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={contantiPortoEmpedocle}
+                onChange={(e) => setContantiPortoEmpedocle(e.target.value)}
+                className="text-lg font-semibold"
+              />
+            </div>
           </div>
+          {contantiAragona && contantiPortoEmpedocle && (
+            <div className="mt-4 p-3 bg-green-100 rounded-lg border-2 border-green-300">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-green-800">TOTALE CONTANTI INSERITI</span>
+                <span className="text-xl font-bold text-green-900">
+                  {formatCurrency((parseFloat(contantiAragona) || 0) + (parseFloat(contantiPortoEmpedocle) || 0))}
+                </span>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Riepilogo Pagamenti */}
+      {/* Riepilogo Entrate Contanti */}
       {riepilogo && (
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Pagamenti Contanti */}
-          <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-yellow-800">
-                <Banknote className="w-5 h-5" />
-                Pagamenti in Contanti
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
-                  <span className="text-sm font-medium">Servizi</span>
-                  <span className="font-semibold">{formatCurrency(riepilogo.pagamenti.servizi.contanti)}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
-                  <span className="text-sm font-medium">Spedizioni</span>
-                  <span className="font-semibold">{formatCurrency(riepilogo.pagamenti.spedizioni.contanti)}</span>
-                </div>
-                <div className="border-t border-gray-200 my-2"></div>
-                <div className="flex justify-between items-center p-3 bg-yellow-100 rounded-lg border-2 border-yellow-300">
-                  <span className="font-bold text-yellow-800">TOTALE CONTANTI</span>
-                  <span className="text-xl font-bold text-yellow-900">{formatCurrency(riepilogo.pagamenti.totaliContanti)}</span>
-                </div>
+        <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-yellow-800">
+              <Banknote className="w-5 h-5" />
+              Entrate in Contanti (Entrambe le Sedi)
+            </CardTitle>
+            <CardDescription className="text-yellow-600">
+              Totale delle entrate in contanti da servizi e spedizioni
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
+                <span className="text-sm font-medium">Servizi in Contanti</span>
+                <span className="font-semibold">{formatCurrency(riepilogo.pagamenti.servizi.contanti)}</span>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Pagamenti POS */}
-          <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-800">
-                <CreditCard className="w-5 h-5" />
-                Pagamenti POS
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
-                  <span className="text-sm font-medium">Servizi</span>
-                  <span className="font-semibold">{formatCurrency(riepilogo.pagamenti.servizi.pos)}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
-                  <span className="text-sm font-medium">Spedizioni</span>
-                  <span className="font-semibold">{formatCurrency(riepilogo.pagamenti.spedizioni.pos)}</span>
-                </div>
-                <div className="border-t border-gray-200 my-2"></div>
-                <div className="flex justify-between items-center p-3 bg-blue-100 rounded-lg border-2 border-blue-300">
-                  <span className="font-bold text-blue-800">TOTALE POS</span>
-                  <span className="text-xl font-bold text-blue-900">{formatCurrency(riepilogo.pagamenti.totaliPos)}</span>
-                </div>
+              <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
+                <span className="text-sm font-medium">Spedizioni in Contanti</span>
+                <span className="font-semibold">{formatCurrency(riepilogo.pagamenti.spedizioni.contanti)}</span>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <div className="border-t border-gray-200 my-2"></div>
+              <div className="flex justify-between items-center p-3 bg-yellow-100 rounded-lg border-2 border-yellow-300">
+                <span className="font-bold text-yellow-800">TOTALE ENTRATE CONTANTI</span>
+                <span className="text-xl font-bold text-yellow-900">{formatCurrency(riepilogo.pagamenti.totaliContanti)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Calcolo Saldo Droppoint */}
+      {/* Calcolo e Verifica Saldo */}
       {calcoloSaldo && (
         <Card className={`border-2 ${
           calcoloSaldo.corrispondenza 
@@ -407,25 +387,37 @@ export default function ChiusuraPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Calcolo Saldo */}
               <div className="space-y-3">
+                <h4 className="font-semibold text-gray-800">Calcolo Saldo Teorico</h4>
                 <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
-                  <span className="text-sm font-medium">Contanti Inseriti</span>
-                  <span className="font-semibold">{formatCurrency(calcoloSaldo.contantiInseriti)}</span>
+                  <span className="text-sm font-medium">Contanti Aragona</span>
+                  <span className="font-semibold">{formatCurrency(calcoloSaldo.contantiAragona)}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
-                  <span className="text-sm font-medium">Costi Contanti</span>
-                  <span className="font-semibold text-red-600">-{formatCurrency(calcoloSaldo.costiContanti)}</span>
+                  <span className="text-sm font-medium">Contanti Porto Empedocle</span>
+                  <span className="font-semibold">{formatCurrency(calcoloSaldo.contantiPortoEmpedocle)}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border">
+                  <span className="text-sm font-medium">Totale Contanti</span>
+                  <span className="font-semibold">{formatCurrency(calcoloSaldo.contantiTotali)}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg border">
+                  <span className="text-sm font-medium">Entrate Contanti</span>
+                  <span className="font-semibold text-red-600">-{formatCurrency(calcoloSaldo.entrateContanti)}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-blue-100 rounded-lg border-2 border-blue-300">
-                  <span className="font-bold text-blue-800">Saldo Calcolato</span>
+                  <span className="font-bold text-blue-800">Saldo Teorico</span>
                   <span className="text-xl font-bold text-blue-900">{formatCurrency(calcoloSaldo.saldoCalcolato)}</span>
                 </div>
               </div>
               
+              {/* Confronto con Droppoint */}
               <div className="space-y-3">
+                <h4 className="font-semibold text-gray-800">Confronto Droppoint</h4>
                 <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
-                  <span className="text-sm font-medium">Saldo Droppoint</span>
+                  <span className="text-sm font-medium">Saldo Droppoint Effettivo</span>
                   <span className="font-semibold">{formatCurrency(calcoloSaldo.saldoDroppointEffettivo)}</span>
                 </div>
                 <div className={`flex justify-between items-center p-3 rounded-lg border-2 ${
@@ -449,7 +441,7 @@ export default function ChiusuraPage() {
                     <span className={`text-xl font-bold ${
                       calcoloSaldo.corrispondenza ? 'text-green-900' : 'text-red-900'
                     }`}>
-                      {formatCurrency(Math.abs(calcoloSaldo.differenza))}
+                      {calcoloSaldo.differenza >= 0 ? '+' : ''}{formatCurrency(calcoloSaldo.differenza)}
                     </span>
                   </div>
                 </div>
@@ -461,8 +453,11 @@ export default function ChiusuraPage() {
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5" />
                   <div className="text-red-800">
-                    <strong>Attenzione:</strong> Il saldo calcolato non corrisponde al saldo droppoint. 
-                    Verifica i contanti inseriti o controlla eventuali discrepanze nei pagamenti.
+                    <strong>Attenzione:</strong> Il saldo teorico non corrisponde al saldo droppoint. 
+                    {calcoloSaldo.differenza > 0 
+                      ? 'Ci sono più soldi in cassa del previsto.' 
+                      : 'Mancano soldi in cassa rispetto al previsto.'
+                    } Verifica i contanti inseriti o controlla eventuali discrepanze.
                   </div>
                 </div>
               </div>
@@ -471,7 +466,7 @@ export default function ChiusuraPage() {
         </Card>
       )}
 
-      {/* Saldo Droppoint Dettaglio */}
+      {/* Dettaglio Saldo Droppoint */}
       {saldoDroppoint && saldoDroppoint.length > 0 && (
         <Card className="bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200">
           <CardHeader>
@@ -510,9 +505,9 @@ export default function ChiusuraPage() {
       <div className="flex justify-center">
         <Button 
           onClick={eseguiChiusura}
-          disabled={loading || !contantiTotali || !calcoloSaldo}
+          disabled={loading || !contantiAragona || !contantiPortoEmpedocle || !calcoloSaldo}
           size="lg"
-          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 text-lg font-semibold"
+          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (
             <div className="flex items-center gap-2">
