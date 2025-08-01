@@ -30,6 +30,8 @@ interface TodoTask {
   assegnatoA?: string
   createdAt: string
   updatedAt: string
+  isScaduto?: boolean
+  prioritaEffettiva?: number
 }
 
 // Componente per visualizzare un singolo task card
@@ -67,12 +69,28 @@ const TaskCard = ({ task, onUpdateStatus, onDelete }: {
   }
   
   return (
-    <Card className="mb-3 shadow-sm hover:shadow-md transition-shadow border-l-4" 
-      style={{ borderLeftColor: task.priorita === 2 ? '#ef4444' : task.priorita === 1 ? '#eab308' : '#9ca3af' }}
+    <Card className={`mb-3 shadow-sm hover:shadow-md transition-shadow border-l-4 ${
+      task.isScaduto ? 'bg-red-50 border-red-500 shadow-red-100' : ''
+    }`} 
+      style={{ 
+        borderLeftColor: task.isScaduto ? '#ef4444' : 
+          task.priorita === 2 ? '#ef4444' : 
+          task.priorita === 1 ? '#eab308' : '#9ca3af' 
+      }}
     >
       <CardContent className="p-3">
         <div className="flex justify-between items-start mb-2">
-          <h4 className="font-medium text-gray-900">{task.titolo}</h4>
+          <div className="flex items-center gap-2">
+            <h4 className={`font-medium ${
+              task.isScaduto ? 'text-red-900' : 'text-gray-900'
+            }`}>{task.titolo}</h4>
+            {task.isScaduto && (
+              <Badge variant="destructive" className="text-xs px-2 py-0.5">
+                <AlertCircle className="w-3 h-3 mr-1" />
+                SCADUTO
+              </Badge>
+            )}
+          </div>
           <div className="relative">
             <Button 
               variant="ghost" 

@@ -30,9 +30,10 @@ export async function GET(request: NextRequest) {
       whereClause.turno = turno
     }
 
-    if (sede) {
+    if (sede && sede !== 'ENTRAMBE') {
       whereClause.sede = sede
     }
+    // Se sede è 'ENTRAMBE', non aggiungiamo il filtro sede per includere entrambe le sedi
 
     // Recupera servizi effettuati
     const serviziEffettuati = await prisma.servizioEffettuato.findMany({

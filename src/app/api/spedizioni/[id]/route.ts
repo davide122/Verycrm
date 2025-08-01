@@ -8,7 +8,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id: paramId } = await params
     const id = parseInt(paramId)
     const body = await request.json()
-    const { peso, pellicola = false, quantitaPellicole = 1, imballaggio = false, quantitaImballaggi = 1, metodoPagamento = 'CONTANTI', sede } = body
+    const { peso, pellicola = false, quantitaPellicole = 1, imballaggio = false, quantitaImballaggi = 1, metodoPagamento = 'CONTANTI', sede, nominativoMittente } = body
 
     if (!peso || !sede) {
       return NextResponse.json(
@@ -53,7 +53,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         prezzoCliente: prezzi.cliente,
         guadagno: prezzi.guadagno,
         sede: sede,
-        metodoPagamento: metodoPagamento || 'CONTANTI'
+        metodoPagamento: metodoPagamento || 'CONTANTI',
+        nominativoMittente: nominativoMittente || null
       }
     })
 

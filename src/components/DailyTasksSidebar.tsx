@@ -26,6 +26,8 @@ interface TodoTask {
   assegnatoA?: string
   createdAt: string
   updatedAt: string
+  isScaduto?: boolean
+  prioritaEffettiva?: number
 }
 
 export default function DailyTasksSidebar() {
@@ -71,11 +73,12 @@ export default function DailyTasksSidebar() {
     const now = new Date()
     const today = now.toISOString().split('T')[0]
     
-    // Filtra solo i task di oggi che non sono completati o annullati
+    // Filtra i task di oggi + scaduti che non sono completati o annullati
     const relevantTasks = tasks.filter(task => {
       const isToday = task.dataScadenza?.startsWith(today)
       const isActive = task.stato === 'DA_FARE' || task.stato === 'IN_CORSO'
-      return isToday && isActive
+      const isOverdue = task.isScaduto
+      return (isToday || isOverdue) && isActive
     })
     
     // Raggruppa per ora di inizio

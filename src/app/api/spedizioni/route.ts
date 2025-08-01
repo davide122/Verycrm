@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { peso, pellicola = false, quantitaPellicole = 1, imballaggio = false, quantitaImballaggi = 1, metodoPagamento = 'CONTANTI', sede } = body
+    const { peso, pellicola = false, quantitaPellicole = 1, imballaggio = false, quantitaImballaggi = 1, metodoPagamento = 'CONTANTI', sede, nominativoMittente } = body
 
     if (!peso || !sede) {
       return NextResponse.json(
@@ -82,7 +82,8 @@ export async function POST(request: NextRequest) {
         guadagno: prezzi.guadagno,
         turno,
         sede: sede,
-        metodoPagamento: metodoPagamento || 'CONTANTI'
+        metodoPagamento: metodoPagamento || 'CONTANTI',
+        nominativoMittente: nominativoMittente || null
       }
     })
 

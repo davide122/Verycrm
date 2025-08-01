@@ -5,12 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
-  Clock, 
-  Sun, 
-  Moon, 
-  MapPin, 
   Calculator, 
   Euro, 
   TrendingUp, 
@@ -18,12 +13,13 @@ import {
   CheckCircle,
   AlertTriangle,
   Banknote,
-  CreditCard,
   Package,
   Receipt,
-  Building2
+  Clock,
+  Sun,
+  Moon,
+  RefreshCw
 } from 'lucide-react'
-import { useSede } from '@/hooks/useSede'
 
 interface RiepilogoData {
   totaleGuadagni: number
@@ -34,12 +30,14 @@ interface RiepilogoData {
     tipo: string
     prezzo: number
     metodoPagamento: string
+    sede: string
   }>
   spedizioni: Array<{
     id: string
     destinatario: string
     prezzo: number
     metodoPagamento: string
+    sede: string
   }>
   pagamenti: {
     servizi: {
@@ -53,10 +51,6 @@ interface RiepilogoData {
     totaliContanti: number
     totaliPos: number
   }
-  speseOperative: {
-    fabioBusta: number
-    descrizione: string
-  }
 }
 
 interface SaldoDroppoint {
@@ -65,6 +59,10 @@ interface SaldoDroppoint {
   saldoIniziale: number
   ricariche: number
   saldoFinale: number
+  saldoUtilizzato: number | null
+  saldoTotale: number
+  totaleRicariche: number
+  percentualeUtilizzata: number | null
   createdAt: string
 }
 
@@ -75,52 +73,49 @@ const formatCurrency = (amount: number) => {
   }).format(amount)
 }
 
-const formatDateTime = (dateString: string) => {
-  return new Intl.DateTimeFormat('it-IT', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(new Date(dateString))
-}
-
-export default function ChiusuraPage() {
+export default function ChiusuraCassaUnificata() {
   const [tipoChiusura, setTipoChiusura] = useState<'mattina' | 'sera'>('sera')
-  const [contantiAragona, setContantiAragona] = useState<string>('')
-  const [contantiPortoEmpedocle, setContantiPortoEmpedocle] = useState<string>('')
+  const [contantiTotali, setContantiTotali] = useState<string>('')
   const [riepilogo, setRiepilogo] = useState<RiepilogoData | null>(null)
-  const [saldoDroppoint, setSaldoDroppoint] = useState<SaldoDroppoint[]>([])
+  const [saldoDroppoint, setSaldoDroppoint] = useState<SaldoDroppoint | null>(null)
   const [loading, setLoading] = useState(false)
-  const [calcoloSaldo, setCalcoloSaldo] = useState<{
-    contantiAragona: number
-    contantiPortoEmpedocle: number
-    contantiTotali: number
-    entrateContanti: number
-    saldoCalcolato: number
-    saldoDroppointEffettivo: number
-    differenza: number
+  const [loadingData, setLoadingData] = useState(true)
+  
+  // Stato per i calcoli
+  const [calcoli, setCalcoli] = useState<{
+    entrateContantiTotali: number
+    contantiInseriti: number
+    saldoRimanente: number
+    saldoDroppointTotale: number
+    differenzaDroppoint: number
     corrispondenza: boolean
   } | null>(null)
 
   const caricaDati = async () => {
-    setLoading(true)
+    setLoadingData(true)
     try {
       const oggi = new Date().toISOString().split('T')[0]
       
       // Carica riepilogo per entrambe le sedi
       const riepilogoRes = await fetch(`/api/riepilogo?sede=ENTRAMBE&data=${oggi}`)
+      if (!riepilogoRes.ok) {
+        throw new Error('Errore nel caricamento del riepilogo')
+      }
       const riepilogoData = await riepilogoRes.json()
-      setRiepilogo(riepilogoData.riepilogo)
+      setRiepilogo(riepilogoData)
 
       // Carica saldo droppoint per entrambe le sedi
       const saldoRes = await fetch(`/api/saldo-droppoint?sede=ENTRAMBE&data=${oggi}`)
+      if (!saldoRes.ok) {
+        throw new Error('Errore nel caricamento del saldo droppoint')
+      }
       const saldoData = await saldoRes.json()
-      setSaldoDroppoint(saldoData.saldi || [])
+      setSaldoDroppoint(saldoData)
     } catch (error) {
       console.error('Errore nel caricamento dati:', error)
+      alert('Errore nel caricamento dei dati. Riprova.')
     } finally {
-      setLoading(false)
+      setLoadingData(false)
     }
   }
 
@@ -129,40 +124,40 @@ export default function ChiusuraPage() {
     caricaDati()
   }, [])
 
-  // Calcola il saldo quando cambiano i contanti inseriti
+  // Calcola tutto quando cambiano i dati
   useEffect(() => {
-    if (contantiAragona && contantiPortoEmpedocle && riepilogo && saldoDroppoint.length > 0) {
-      const contantiAragonaNum = parseFloat(contantiAragona) || 0
-      const contantiPortoEmpedocleNum = parseFloat(contantiPortoEmpedocle) || 0
-      const contantiTotali = contantiAragonaNum + contantiPortoEmpedocleNum
-      const entrateContanti = riepilogo.pagamenti.totaliContanti
-      const saldoCalcolato = contantiTotali - entrateContanti
-      
-      // Calcola il saldo droppoint effettivo (somma di tutti i saldi finali)
-      const saldoDroppointEffettivo = saldoDroppoint.reduce((sum, saldo) => sum + saldo.saldoFinale, 0)
-      
-      const differenza = saldoCalcolato - saldoDroppointEffettivo
-      const corrispondenza = Math.abs(differenza) < 0.01 // Tolleranza di 1 centesimo
+    if (contantiTotali && riepilogo && saldoDroppoint) {
+      const contantiInseriti = parseFloat(contantiTotali) || 0
+      const entrateContantiTotali = riepilogo.pagamenti.totaliContanti
+      const saldoRimanente = contantiInseriti - entrateContantiTotali
+      const saldoDroppointTotale = saldoDroppoint.saldoUtilizzato || 0
+      const differenzaDroppoint = saldoRimanente - saldoDroppointTotale
+      const corrispondenza = Math.abs(differenzaDroppoint) < 0.01 // Tolleranza di 1 centesimo
 
-      setCalcoloSaldo({
-        contantiAragona: contantiAragonaNum,
-        contantiPortoEmpedocle: contantiPortoEmpedocleNum,
-        contantiTotali,
-        entrateContanti,
-        saldoCalcolato,
-        saldoDroppointEffettivo,
-        differenza,
+      setCalcoli({
+        entrateContantiTotali,
+        contantiInseriti,
+        saldoRimanente,
+        saldoDroppointTotale,
+        differenzaDroppoint,
         corrispondenza
       })
     } else {
-      setCalcoloSaldo(null)
+      setCalcoli(null)
     }
-  }, [contantiAragona, contantiPortoEmpedocle, riepilogo, saldoDroppoint])
+  }, [contantiTotali, riepilogo, saldoDroppoint])
 
   const eseguiChiusura = async () => {
-    if (!contantiAragona || !contantiPortoEmpedocle || !calcoloSaldo) {
-      alert('Inserisci i contanti per entrambe le sedi per procedere')
+    if (!contantiTotali || !calcoli) {
+      alert('Inserisci il totale contanti per procedere con la chiusura')
       return
+    }
+
+    if (!calcoli.corrispondenza) {
+      const conferma = confirm(
+        `ATTENZIONE: Il saldo non corrisponde (differenza: ${formatCurrency(calcoli.differenzaDroppoint)}). Vuoi procedere comunque?`
+      )
+      if (!conferma) return
     }
 
     setLoading(true)
@@ -175,289 +170,332 @@ export default function ChiusuraPage() {
         body: JSON.stringify({
           tipoChiusura,
           sede: 'ENTRAMBE',
-          contantiAragona: parseFloat(contantiAragona),
-          contantiPortoEmpedocle: parseFloat(contantiPortoEmpedocle),
-          contantiTotali: calcoloSaldo.contantiTotali,
+          contantiTotali: calcoli.contantiInseriti,
           riepilogo,
           saldoDroppoint,
-          calcoloSaldo
+          calcoli
         })
       })
 
       if (response.ok) {
-        alert('Chiusura completata con successo!')
+        alert('✅ Chiusura completata con successo!')
         // Reset form
-        setContantiAragona('')
-        setContantiPortoEmpedocle('')
-        setCalcoloSaldo(null)
+        setContantiTotali('')
+        setCalcoli(null)
         caricaDati()
       } else {
-        throw new Error('Errore nella chiusura')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Errore nella chiusura')
       }
     } catch (error) {
       console.error('Errore:', error)
-      alert('Errore durante la chiusura')
+      const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto'
+      alert(`❌ Errore durante la chiusura: ${errorMessage}`)
     } finally {
       setLoading(false)
     }
   }
 
+  if (loadingData) {
+    return (
+      <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <RefreshCw className="w-12 h-12 animate-spin mx-auto text-blue-600" />
+          <h2 className="text-2xl font-bold text-gray-800">Caricamento dati...</h2>
+          <p className="text-gray-600">Sto recuperando i dati per la chiusura</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="container mx-auto p-6 space-y-8">
+    <div className="container mx-auto p-6 space-y-8 max-w-5xl">
       {/* Header */}
       <div className="text-center space-y-4">
-        <div className="flex items-center justify-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-            <Calculator className="w-7 h-7 text-white" />
+        <div className="flex items-center justify-center gap-4">
+          <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-xl">
+            <Calculator className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Chiusura Cassa Unificata
-          </h1>
+          <div>
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Chiusura Cassa Unificata
+            </h1>
+            <p className="text-gray-600 text-xl mt-2">
+              Sistema completo per la gestione della chiusura di entrambe le sedi
+            </p>
+          </div>
         </div>
-        <p className="text-gray-600 text-lg">
-          Sistema completo di chiusura con verifica saldo drop point
-        </p>
       </div>
 
-      {/* Configurazione Chiusura */}
-      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+      {/* Tipo Chiusura */}
+      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-blue-800">
-            <Clock className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-3 text-blue-800 text-xl">
+            <Clock className="w-6 h-6" />
             Configurazione Chiusura
           </CardTitle>
-          <CardDescription className="text-blue-600">
-            Seleziona il tipo di chiusura
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Tipo Chiusura */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium text-blue-800">Tipo Chiusura</Label>
-            <div className="flex gap-6">
-              <div className="flex items-center space-x-2">
-                <input 
-                  type="radio" 
-                  value="mattina" 
-                  id="mattina" 
-                  checked={tipoChiusura === 'mattina'}
-                  onChange={(e) => setTipoChiusura(e.target.value as 'mattina' | 'sera')}
-                  className="w-4 h-4 text-blue-600"
-                />
-                <Label htmlFor="mattina" className="flex items-center gap-2 cursor-pointer">
-                  <Sun className="w-4 h-4 text-yellow-500" />
-                  Chiusura Mattina
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <input 
-                  type="radio" 
-                  value="sera" 
-                  id="sera" 
-                  checked={tipoChiusura === 'sera'}
-                  onChange={(e) => setTipoChiusura(e.target.value as 'mattina' | 'sera')}
-                  className="w-4 h-4 text-blue-600"
-                />
-                <Label htmlFor="sera" className="flex items-center gap-2 cursor-pointer">
-                  <Moon className="w-4 h-4 text-blue-500" />
-                  Chiusura Sera
-                </Label>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Inserimento Contanti per Sede */}
-      <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-green-800">
-            <Euro className="w-5 h-5" />
-            Contanti per Sede
-          </CardTitle>
-          <CardDescription className="text-green-600">
-            Inserisci l&apos;importo dei contanti presenti in ogni sede
+          <CardDescription className="text-blue-600 text-lg">
+            Seleziona il tipo di chiusura da effettuare
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <Label htmlFor="contanti-aragona" className="text-sm font-medium text-green-800">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Contanti Aragona (€)
-                </div>
-              </Label>
-              <Input
-                id="contanti-aragona"
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                value={contantiAragona}
-                onChange={(e) => setContantiAragona(e.target.value)}
-                className="text-lg font-semibold"
+          <div className="flex gap-12 justify-center">
+            <label className="flex items-center gap-4 cursor-pointer group">
+              <input 
+                type="radio" 
+                value="mattina" 
+                checked={tipoChiusura === 'mattina'}
+                onChange={(e) => setTipoChiusura(e.target.value as 'mattina' | 'sera')}
+                className="w-6 h-6 text-blue-600"
               />
-            </div>
-            <div className="space-y-3">
-              <Label htmlFor="contanti-porto" className="text-sm font-medium text-green-800">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Contanti Porto Empedocle (€)
-                </div>
-              </Label>
-              <Input
-                id="contanti-porto"
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                value={contantiPortoEmpedocle}
-                onChange={(e) => setContantiPortoEmpedocle(e.target.value)}
-                className="text-lg font-semibold"
-              />
-            </div>
-          </div>
-          {contantiAragona && contantiPortoEmpedocle && (
-            <div className="mt-4 p-3 bg-green-100 rounded-lg border-2 border-green-300">
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-green-800">TOTALE CONTANTI INSERITI</span>
-                <span className="text-xl font-bold text-green-900">
-                  {formatCurrency((parseFloat(contantiAragona) || 0) + (parseFloat(contantiPortoEmpedocle) || 0))}
-                </span>
+              <div className="flex items-center gap-3 group-hover:scale-105 transition-transform">
+                <Sun className="w-6 h-6 text-yellow-500" />
+                <span className="text-xl font-semibold text-gray-800">Chiusura Mattina</span>
               </div>
-            </div>
-          )}
+            </label>
+            <label className="flex items-center gap-4 cursor-pointer group">
+              <input 
+                type="radio" 
+                value="sera" 
+                checked={tipoChiusura === 'sera'}
+                onChange={(e) => setTipoChiusura(e.target.value as 'mattina' | 'sera')}
+                className="w-6 h-6 text-blue-600"
+              />
+              <div className="flex items-center gap-3 group-hover:scale-105 transition-transform">
+                <Moon className="w-6 h-6 text-blue-500" />
+                <span className="text-xl font-semibold text-gray-800">Chiusura Sera</span>
+              </div>
+            </label>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Riepilogo Entrate Contanti */}
+      {/* Entrate Contanti Calcolate */}
       {riepilogo && (
-        <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200">
+        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-yellow-800">
-              <Banknote className="w-5 h-5" />
-              Entrate in Contanti (Entrambe le Sedi)
+            <CardTitle className="flex items-center gap-3 text-green-800 text-xl">
+              <Banknote className="w-6 h-6" />
+              Entrate in Contanti - Entrambe le Sedi
             </CardTitle>
-            <CardDescription className="text-yellow-600">
-              Totale delle entrate in contanti da servizi e spedizioni
+            <CardDescription className="text-green-600 text-lg">
+              Totale automatico calcolato da tutti i servizi e spedizioni pagati in contanti
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
-                <span className="text-sm font-medium">Servizi in Contanti</span>
-                <span className="font-semibold">{formatCurrency(riepilogo.pagamenti.servizi.contanti)}</span>
+          <CardContent>
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="bg-white p-6 rounded-xl border-2 border-green-100 text-center shadow-md hover:shadow-lg transition-shadow">
+                <div className="text-sm text-gray-600 mb-2 font-medium">Servizi Contanti</div>
+                <div className="text-2xl font-bold text-green-700">
+                  {formatCurrency(riepilogo.pagamenti.servizi.contanti)}
+                </div>
               </div>
-              <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
-                <span className="text-sm font-medium">Spedizioni in Contanti</span>
-                <span className="font-semibold">{formatCurrency(riepilogo.pagamenti.spedizioni.contanti)}</span>
+              <div className="bg-white p-6 rounded-xl border-2 border-green-100 text-center shadow-md hover:shadow-lg transition-shadow">
+                <div className="text-sm text-gray-600 mb-2 font-medium">Spedizioni Contanti</div>
+                <div className="text-2xl font-bold text-green-700">
+                  {formatCurrency(riepilogo.pagamenti.spedizioni.contanti)}
+                </div>
               </div>
-              <div className="border-t border-gray-200 my-2"></div>
-              <div className="flex justify-between items-center p-3 bg-yellow-100 rounded-lg border-2 border-yellow-300">
-                <span className="font-bold text-yellow-800">TOTALE ENTRATE CONTANTI</span>
-                <span className="text-xl font-bold text-yellow-900">{formatCurrency(riepilogo.pagamenti.totaliContanti)}</span>
+              <div className="bg-green-100 p-6 rounded-xl border-2 border-green-300 text-center shadow-lg">
+                <div className="text-sm text-green-800 mb-2 font-bold">TOTALE ENTRATE CONTANTI</div>
+                <div className="text-3xl font-bold text-green-900">
+                  {formatCurrency(riepilogo.pagamenti.totaliContanti)}
+                </div>
+                <div className="text-xs text-green-700 mt-1">Da sottrarre dal totale contanti</div>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Calcolo e Verifica Saldo */}
-      {calcoloSaldo && (
-        <Card className={`border-2 ${
-          calcoloSaldo.corrispondenza 
+      {/* Input Contanti Totali */}
+      <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-yellow-800 text-xl">
+            <Euro className="w-6 h-6" />
+            Contanti Totali Presenti
+          </CardTitle>
+          <CardDescription className="text-yellow-600 text-lg">
+            Inserisci la somma di tutti i contanti presenti in entrambe le sedi
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="max-w-lg mx-auto space-y-4">
+            <Label htmlFor="contanti-totali" className="text-xl font-bold text-yellow-800 block text-center">
+              Totale Contanti Fisici (€)
+            </Label>
+            <Input
+              id="contanti-totali"
+              type="number"
+              step="0.01"
+              placeholder="Es: 3000.00"
+              value={contantiTotali}
+              onChange={(e) => setContantiTotali(e.target.value)}
+              className="text-3xl font-bold text-center h-20 text-yellow-900 bg-white border-3 border-yellow-300 shadow-lg"
+            />
+            <div className="bg-yellow-100 p-4 rounded-lg border border-yellow-300">
+              <p className="text-sm text-yellow-800 text-center font-medium">
+                <strong>Esempio:</strong> Se Aragona ha 1000€ e Porto Empedocle ha 2000€, inserisci <strong>3000€</strong>
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Calcoli e Verifica */}
+      {calcoli && (
+        <Card className={`border-3 shadow-xl ${
+          calcoli.corrispondenza 
             ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-300' 
             : 'bg-gradient-to-br from-red-50 to-pink-50 border-red-300'
         }`}>
           <CardHeader>
-            <CardTitle className={`flex items-center gap-2 ${
-              calcoloSaldo.corrispondenza ? 'text-green-800' : 'text-red-800'
+            <CardTitle className={`flex items-center gap-3 text-2xl ${
+              calcoli.corrispondenza ? 'text-green-800' : 'text-red-800'
             }`}>
-              {calcoloSaldo.corrispondenza ? (
-                <CheckCircle className="w-5 h-5" />
+              {calcoli.corrispondenza ? (
+                <CheckCircle className="w-8 h-8" />
               ) : (
-                <AlertTriangle className="w-5 h-5" />
+                <AlertTriangle className="w-8 h-8" />
               )}
-              Verifica Saldo Droppoint
+              Verifica Saldo e Droppoint
             </CardTitle>
-            <CardDescription className={calcoloSaldo.corrispondenza ? 'text-green-600' : 'text-red-600'}>
-              {calcoloSaldo.corrispondenza 
-                ? '✅ Il saldo corrisponde perfettamente!' 
-                : '⚠️ Attenzione: il saldo non corrisponde'
+            <CardDescription className={`text-lg font-medium ${
+              calcoli.corrispondenza ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {calcoli.corrispondenza 
+                ? '✅ Perfetto! Il saldo corrisponde esattamente con il droppoint' 
+                : '⚠️ Attenzione: c&apos;è una discrepanza tra il saldo calcolato e il droppoint'
               }
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Calcolo Saldo */}
-              <div className="space-y-3">
-                <h4 className="font-semibold text-gray-800">Calcolo Saldo Teorico</h4>
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
-                  <span className="text-sm font-medium">Contanti Aragona</span>
-                  <span className="font-semibold">{formatCurrency(calcoloSaldo.contantiAragona)}</span>
+          <CardContent>
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* Calcolo del Saldo */}
+              <div className="space-y-6">
+                <h3 className="text-xl font-bold text-gray-800 border-b-2 border-gray-200 pb-3">
+                  📊 Calcolo del Saldo
+                </h3>
+                
+                <div className="bg-blue-50 p-5 rounded-xl border-2 border-blue-200">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-blue-800">Contanti Inseriti</span>
+                    <span className="text-2xl font-bold text-blue-600">
+                      {formatCurrency(calcoli.contantiInseriti)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-blue-600 mt-1">Totale contanti fisici presenti</p>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
-                  <span className="text-sm font-medium">Contanti Porto Empedocle</span>
-                  <span className="font-semibold">{formatCurrency(calcoloSaldo.contantiPortoEmpedocle)}</span>
+                
+                <div className="bg-red-50 p-5 rounded-xl border-2 border-red-200">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-red-800">Entrate Contanti</span>
+                    <span className="text-2xl font-bold text-red-600">
+                      -{formatCurrency(calcoli.entrateContantiTotali)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-red-600 mt-1">Da servizi e spedizioni</p>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border">
-                  <span className="text-sm font-medium">Totale Contanti</span>
-                  <span className="font-semibold">{formatCurrency(calcoloSaldo.contantiTotali)}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg border">
-                  <span className="text-sm font-medium">Entrate Contanti</span>
-                  <span className="font-semibold text-red-600">-{formatCurrency(calcoloSaldo.entrateContanti)}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-blue-100 rounded-lg border-2 border-blue-300">
-                  <span className="font-bold text-blue-800">Saldo Teorico</span>
-                  <span className="text-xl font-bold text-blue-900">{formatCurrency(calcoloSaldo.saldoCalcolato)}</span>
+                
+                <div className="bg-purple-100 p-6 rounded-xl border-3 border-purple-300 shadow-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-purple-800 text-lg">Saldo Rimanente</span>
+                    <span className="text-3xl font-bold text-purple-900">
+                      {formatCurrency(calcoli.saldoRimanente)}
+                    </span>
+                  </div>
+                  <p className="text-sm text-purple-700 mt-2 font-medium">
+                    Questo è quello che dovrebbe rimanere in cassa dopo le vendite
+                  </p>
                 </div>
               </div>
               
               {/* Confronto con Droppoint */}
-              <div className="space-y-3">
-                <h4 className="font-semibold text-gray-800">Confronto Droppoint</h4>
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg border">
-                  <span className="text-sm font-medium">Saldo Droppoint Effettivo</span>
-                  <span className="font-semibold">{formatCurrency(calcoloSaldo.saldoDroppointEffettivo)}</span>
+              <div className="space-y-6">
+                <h3 className="text-xl font-bold text-gray-800 border-b-2 border-gray-200 pb-3">
+                  🔍 Confronto con Droppoint
+                </h3>
+                
+                <div className="bg-indigo-50 p-5 rounded-xl border-2 border-indigo-200">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-indigo-800">Saldo Droppoint Utilizzato</span>
+                    <span className="text-2xl font-bold text-indigo-600">
+                      {formatCurrency(calcoli.saldoDroppointTotale)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-indigo-600 mt-1">Saldo effettivamente consumato durante i turni</p>
                 </div>
-                <div className={`flex justify-between items-center p-3 rounded-lg border-2 ${
-                  calcoloSaldo.corrispondenza 
+                
+                <div className={`p-6 rounded-xl border-3 shadow-lg ${
+                  calcoli.corrispondenza 
                     ? 'bg-green-100 border-green-300' 
                     : 'bg-red-100 border-red-300'
                 }`}>
-                  <span className={`font-bold ${
-                    calcoloSaldo.corrispondenza ? 'text-green-800' : 'text-red-800'
-                  }`}>
-                    Differenza
-                  </span>
-                  <div className="flex items-center gap-2">
-                    {calcoloSaldo.differenza > 0 ? (
-                      <TrendingUp className="w-4 h-4 text-green-600" />
-                    ) : calcoloSaldo.differenza < 0 ? (
-                      <TrendingDown className="w-4 h-4 text-red-600" />
-                    ) : (
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                    )}
-                    <span className={`text-xl font-bold ${
-                      calcoloSaldo.corrispondenza ? 'text-green-900' : 'text-red-900'
+                  <div className="flex justify-between items-center mb-3">
+                    <span className={`font-bold text-lg ${
+                      calcoli.corrispondenza ? 'text-green-800' : 'text-red-800'
                     }`}>
-                      {calcoloSaldo.differenza >= 0 ? '+' : ''}{formatCurrency(calcoloSaldo.differenza)}
+                      Differenza
                     </span>
+                    <div className="flex items-center gap-3">
+                      {calcoli.differenzaDroppoint > 0 ? (
+                        <TrendingUp className="w-6 h-6 text-green-600" />
+                      ) : calcoli.differenzaDroppoint < 0 ? (
+                        <TrendingDown className="w-6 h-6 text-red-600" />
+                      ) : (
+                        <CheckCircle className="w-6 h-6 text-green-600" />
+                      )}
+                      <span className={`text-3xl font-bold ${
+                        calcoli.corrispondenza ? 'text-green-900' : 'text-red-900'
+                      }`}>
+                        {calcoli.differenzaDroppoint >= 0 ? '+' : ''}{formatCurrency(calcoli.differenzaDroppoint)}
+                      </span>
+                    </div>
                   </div>
+                  <p className={`text-sm font-medium ${
+                    calcoli.corrispondenza ? 'text-green-700' : 'text-red-700'
+                  }`}>
+                    {calcoli.differenzaDroppoint > 0 
+                      ? 'Hai più soldi in cassa del previsto - Possibili entrate non registrate' 
+                      : calcoli.differenzaDroppoint < 0
+                      ? 'Mancano soldi in cassa - Verifica prelievi o errori di conteggio'
+                      : 'Saldo perfettamente bilanciato - Tutto corretto!'
+                    }
+                  </p>
                 </div>
               </div>
             </div>
 
-            {!calcoloSaldo.corrispondenza && (
-              <div className="border border-red-200 bg-red-50 p-4 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5" />
+            {/* Spiegazione dettagliata per discrepanze */}
+            {!calcoli.corrispondenza && (
+              <div className="mt-8 p-6 bg-red-50 border-2 border-red-200 rounded-xl">
+                <div className="flex items-start gap-4">
+                  <AlertTriangle className="w-8 h-8 text-red-600 mt-1 flex-shrink-0" />
                   <div className="text-red-800">
-                    <strong>Attenzione:</strong> Il saldo teorico non corrisponde al saldo droppoint. 
-                    {calcoloSaldo.differenza > 0 
-                      ? 'Ci sono più soldi in cassa del previsto.' 
-                      : 'Mancano soldi in cassa rispetto al previsto.'
-                    } Verifica i contanti inseriti o controlla eventuali discrepanze.
+                    <h4 className="font-bold text-lg mb-3">🚨 Analisi della Discrepanza</h4>
+                    <div className="space-y-2 text-sm">
+                      <p><strong>Situazione:</strong> Il saldo rimanente ({formatCurrency(calcoli.saldoRimanente)}) non corrisponde al saldo droppoint utilizzato ({formatCurrency(calcoli.saldoDroppointTotale)})</p>
+                      <p><strong>Differenza:</strong> {formatCurrency(Math.abs(calcoli.differenzaDroppoint))}</p>
+                      {calcoli.differenzaDroppoint > 0 ? (
+                        <div className="bg-yellow-100 p-3 rounded-lg border border-yellow-300 mt-3">
+                          <p><strong>💰 Hai più soldi del previsto:</strong></p>
+                          <ul className="list-disc list-inside mt-1 space-y-1">
+                            <li>Potrebbero esserci entrate non registrate nel sistema</li>
+                            <li>Errori nel calcolo del droppoint</li>
+                            <li>Ricariche droppoint non contabilizzate correttamente</li>
+                          </ul>
+                        </div>
+                      ) : (
+                        <div className="bg-orange-100 p-3 rounded-lg border border-orange-300 mt-3">
+                          <p><strong>⚠️ Mancano soldi in cassa:</strong></p>
+                          <ul className="list-disc list-inside mt-1 space-y-1">
+                            <li>Verifica se ci sono stati prelievi non registrati</li>
+                            <li>Controlla errori nel conteggio dei contanti</li>
+                            <li>Possibili spese operative non contabilizzate</li>
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -466,35 +504,39 @@ export default function ChiusuraPage() {
         </Card>
       )}
 
-      {/* Dettaglio Saldo Droppoint */}
-      {saldoDroppoint && saldoDroppoint.length > 0 && (
-        <Card className="bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200">
+      {/* Dettaglio Saldo Droppoint Unificato */}
+      {saldoDroppoint && (
+        <Card className="bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200 shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-purple-800">
-              <Package className="w-5 h-5" />
-              Dettaglio Saldo Droppoint
+            <CardTitle className="flex items-center gap-3 text-purple-800 text-xl">
+              <Package className="w-6 h-6" />
+              Saldo Droppoint Unificato
             </CardTitle>
+            <CardDescription className="text-purple-600 text-lg">
+              Sistema droppoint condiviso tra entrambe le sedi
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {saldoDroppoint.map((saldo) => (
-                <div key={saldo.id} className="flex justify-between items-center p-3 bg-white rounded-lg border">
+            <div className="space-y-4">
+              <div className="p-5 bg-white rounded-xl border-2 border-purple-100 shadow-md">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <span className="font-medium">{saldo.sede}</span>
-                    <p className="text-xs text-gray-500">{formatDateTime(saldo.createdAt)}</p>
+                    <p className="text-sm text-gray-600">Saldo Iniziale</p>
+                    <p className="font-bold text-lg text-purple-800">{formatCurrency(saldoDroppoint.saldoIniziale)}</p>
                   </div>
-                  <div className="text-right">
-                    <span className="font-semibold">{formatCurrency(saldo.saldoFinale)}</span>
-                    <p className="text-xs text-gray-500">Ricariche: {formatCurrency(saldo.ricariche)}</p>
+                  <div>
+                    <p className="text-sm text-gray-600">Ricariche Totali</p>
+                    <p className="font-bold text-lg text-green-600">{formatCurrency(saldoDroppoint.totaleRicariche || 0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Saldo Teorico</p>
+                    <p className="font-bold text-lg text-blue-600">{formatCurrency(saldoDroppoint.saldoTotale || 0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Saldo Utilizzato</p>
+                    <p className="font-bold text-lg text-red-600">{formatCurrency(saldoDroppoint.saldoUtilizzato || 0)}</p>
                   </div>
                 </div>
-              ))}
-              <div className="border-t border-gray-200 my-2"></div>
-              <div className="flex justify-between items-center p-3 bg-purple-100 rounded-lg border-2 border-purple-300">
-                <span className="font-bold text-purple-800">TOTALE SALDO DROPPOINT</span>
-                <span className="text-xl font-bold text-purple-900">
-                  {formatCurrency(saldoDroppoint.reduce((sum, saldo) => sum + saldo.saldoFinale, 0))}
-                </span>
               </div>
             </div>
           </CardContent>
@@ -502,26 +544,83 @@ export default function ChiusuraPage() {
       )}
 
       {/* Pulsante Chiusura */}
-      <div className="flex justify-center">
+      <div className="flex justify-center pt-8">
         <Button 
           onClick={eseguiChiusura}
-          disabled={loading || !contantiAragona || !contantiPortoEmpedocle || !calcoloSaldo}
+          disabled={loading || !contantiTotali || !calcoli}
           size="lg"
-          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`px-16 py-6 text-2xl font-bold rounded-2xl shadow-2xl transition-all duration-300 transform hover:scale-105 ${
+            loading || !contantiTotali || !calcoli
+              ? 'bg-gray-400 cursor-not-allowed'
+              : calcoli?.corrispondenza
+              ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white'
+              : 'bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white'
+          }`}
         >
           {loading ? (
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Elaborazione...
+            <div className="flex items-center gap-4">
+              <RefreshCw className="w-8 h-8 animate-spin" />
+              Elaborazione in corso...
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <Receipt className="w-5 h-5" />
-              Esegui Chiusura {tipoChiusura === 'mattina' ? 'Mattina' : 'Sera'}
+            <div className="flex items-center gap-4">
+              <Receipt className="w-8 h-8" />
+              {calcoli?.corrispondenza 
+                ? `✅ Esegui Chiusura ${tipoChiusura === 'mattina' ? 'Mattina' : 'Sera'}` 
+                : `⚠️ Esegui Chiusura con Discrepanza`
+              }
             </div>
           )}
         </Button>
       </div>
+
+      {/* Guida al Funzionamento */}
+      <Card className="bg-gradient-to-br from-gray-50 to-slate-50 border-gray-200 shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-gray-800 text-xl">💡 Come Funziona la Chiusura Unificata</CardTitle>
+          <CardDescription className="text-gray-600 text-lg">
+            Processo step-by-step per una chiusura corretta
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h4 className="font-bold text-lg text-gray-800 border-b pb-2">🔢 Calcoli Automatici</h4>
+              <div className="space-y-3 text-sm text-gray-700">
+                <div className="flex items-start gap-3">
+                  <span className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
+                  <p>Il sistema calcola automaticamente le <strong>entrate in contanti</strong> da servizi e spedizioni di entrambe le sedi</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
+                  <p>Tu inserisci il <strong>totale dei contanti fisici</strong> presenti (Aragona + Porto Empedocle)</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
+                  <p>Il sistema sottrae le entrate dai contanti totali per ottenere il <strong>&quot;saldo rimanente&quot;</strong></p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h4 className="font-bold text-lg text-gray-800 border-b pb-2">✅ Verifica Droppoint</h4>
+              <div className="space-y-3 text-sm text-gray-700">
+                <div className="flex items-start gap-3">
+                  <span className="bg-green-100 text-green-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">4</span>
+                  <p>Confronta il saldo rimanente con il <strong>saldo droppoint totale</strong> per verificare la corrispondenza</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="bg-green-100 text-green-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">5</span>
+                  <p>Se c&apos;è una differenza, significa che i soldi <strong>&quot;mancanti&quot;</strong> dal droppoint dovrebbero essere in cassa</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="bg-green-100 text-green-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">6</span>
+                  <p>Il sistema ti avvisa di eventuali <strong>discrepanze</strong> e ti permette di procedere comunque</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

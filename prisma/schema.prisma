@@ -46,6 +46,7 @@ model Spedizione {
   metodoPagamento    MetodoPagamento @default(CONTANTI)
   quantitaImballaggi Int             @default(1)
   quantitaPellicole  Int             @default(1)
+  nominativoMittente String?
 }
 
 model Chiusura {

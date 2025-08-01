@@ -28,7 +28,11 @@ import {
   RefreshCw,
   Eye,
   TrendingDown,
-  Settings
+  Settings,
+  CheckCircle,
+  AlertCircle,
+  ListTodo,
+  Calendar as CalendarIcon
 } from 'lucide-react'
 import { formatCurrency, formatDate, getTurnoCorrente } from '@/lib/utils'
 import { useSede } from '@/hooks/useSede'
@@ -55,6 +59,19 @@ interface Spedizione {
   prezzoCliente: number
   guadagno: number
   rimborsoSpese: number
+  nominativoMittente?: string
+  metodoPagamento: string
+  createdAt: string
+  turno: string
+}
+
+interface TaskStats {
+  perStato: Record<string, number>
+  scaduti: number
+  oggi: number
+  completatiSettimana: number
+  perPriorita: Record<number, number>
+  totaleAttivi: number
 }
 
 interface RiepilogoData {
@@ -104,9 +121,97 @@ interface RiepilogoData {
 export default function DashboardPage() {
   const { currentSede } = useSede()
   const [riepilogo, setRiepilogo] = useState<RiepilogoData | null>(null)
+  const [taskStats, setTaskStats] = useState<TaskStats | null>(null)
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [selectedTurno, setSelectedTurno] = useState<string>('all')
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().substring(0, 7))
   const [loading, setLoading] = useState(false)
+
+  const downloadMonthlyCSV = async () => {
+    if (!currentSede) return
+    
+    try {
+      const response = await fetch(`/api/spedizioni/monthly?month=${selectedMonth}&sede=${currentSede.id}`)
+      const monthlyData = await response.json()
+      
+      const csvContent = generateMonthlyCSVContent(monthlyData, selectedMonth)
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `spedizioni_${selectedMonth}_${currentSede.nome}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (error) {
+      console.error('Errore nel download CSV:', error)
+      alert('Errore nel download del file CSV')
+    }
+  }
+
+  const generateMonthlyCSVContent = (spedizioni: Spedizione[], month: string): string => {
+    const headers = ['Data', 'Ora', 'Nominativo Mittente', 'Peso (kg)', 'Prezzo Pagato', 'Metodo Pagamento', 'Turno', 'Sede']
+    const csvRows = [headers.join(',')]
+    
+    spedizioni.forEach(spedizione => {
+      const createdAt = new Date(spedizione.createdAt)
+      const row = [
+        createdAt.toLocaleDateString('it-IT'),
+        createdAt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+        spedizione.nominativoMittente || 'Non specificato',
+        spedizione.peso.toString(),
+        spedizione.prezzoCliente.toFixed(2),
+        spedizione.metodoPagamento,
+        spedizione.turno,
+        currentSede?.nome || 'Non specificata'
+      ]
+      csvRows.push(row.map(field => `"${field}"`).join(','))
+    })
+    
+    return csvRows.join('\n')
+  }
+
+  const downloadMonthlyPDF = async () => {
+    if (!currentSede) {
+      alert('Seleziona una sede')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/report/monthly?month=${selectedMonth}&sede=${currentSede.id}`)
+      
+      if (!response.ok) {
+        throw new Error('Errore nella generazione del report')
+      }
+
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.setAttribute('href', url)
+      link.setAttribute('download', `report_mensile_${selectedMonth}_${currentSede.nome.replace(/\s+/g, '_')}.pdf`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Errore nel download del PDF:', error)
+      alert('Errore nel download del PDF mensile')
+    }
+  }
+
+  const fetchTaskStats = async () => {
+    if (!currentSede) return
+    
+    try {
+      const response = await fetch(`/api/todolist/stats?sede=${currentSede.id}`)
+      const data = await response.json()
+      setTaskStats(data)
+    } catch (error) {
+      console.error('Errore nel caricamento delle statistiche task:', error)
+    }
+  }
 
   const fetchRiepilogo = async () => {
     setLoading(true)
@@ -122,6 +227,9 @@ export default function DashboardPage() {
       const response = await fetch(url)
       const data = await response.json()
       setRiepilogo(data)
+      
+      // Carica anche le statistiche dei task
+      await fetchTaskStats()
     } catch (error) {
       console.error('Errore nel caricamento del riepilogo:', error)
     } finally {
@@ -186,6 +294,30 @@ export default function DashboardPage() {
             >
               <Download className="w-4 h-4" />
               Stampa PDF
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-2"
+              onClick={() => {
+                downloadMonthlyCSV()
+              }}
+              disabled={!riepilogo}
+            >
+              <FileText className="w-4 h-4" />
+              Scarica CSV
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-2"
+              onClick={() => {
+                downloadMonthlyPDF()
+              }}
+              disabled={!currentSede}
+            >
+              <Download className="w-4 h-4" />
+              Report PDF
             </Button>
             <Link href="/impostazioni">
               <Button variant="outline" size="sm" className="flex items-center gap-2">
@@ -260,6 +392,73 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Task Statistics */}
+        {taskStats && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <ListTodo className="w-5 h-5" />
+              Stato Task
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-pink-500 rounded-lg flex items-center justify-center">
+                    <AlertCircle className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Task Scaduti</p>
+                    <p className="text-lg font-bold text-red-600">
+                      {taskStats.scaduti}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                    <CalendarIcon className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Task Oggi</p>
+                    <p className="text-lg font-bold text-blue-600">
+                      {taskStats.oggi}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Completati Settimana</p>
+                    <p className="text-lg font-bold text-green-600">
+                      {taskStats.completatiSettimana}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center">
+                    <Activity className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Task Attivi</p>
+                    <p className="text-lg font-bold text-purple-600">
+                      {taskStats.totaleAttivi}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Filtri Avanzati */}
         <Card className="mb-8 bg-white/90 backdrop-blur-sm border-0 shadow-xl">
           <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-t-lg">
@@ -274,7 +473,7 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-4 gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-blue-500" />
@@ -285,6 +484,19 @@ export default function DashboardPage() {
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   className="border-2 border-blue-200 focus:border-blue-500 rounded-lg"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-orange-500" />
+                  Mese per CSV
+                </label>
+                <Input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="border-2 border-orange-200 focus:border-orange-500 rounded-lg"
                 />
               </div>
               

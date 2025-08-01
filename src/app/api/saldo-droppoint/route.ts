@@ -6,6 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const data = searchParams.get('data')
+    const sede = searchParams.get('sede')
     
     if (!data) {
       return NextResponse.json({ error: 'Data richiesta' }, { status: 400 })
@@ -37,14 +38,49 @@ export async function GET(request: NextRequest) {
       })
     }
     
-    // Calcola il saldo totale con le ricariche
-    const totaleRicariche = saldo.ricariche.reduce((sum, ricarica) => sum + ricarica.importo, 0)
+    // Se sede è ENTRAMBE, restituisci il saldo unificato
+    if (sede === 'ENTRAMBE') {
+      const totaleRicariche = saldo.ricariche.reduce((sum, ricarica) => sum + ricarica.importo, 0)
+      const saldoTotale = saldo.saldoIniziale + totaleRicariche
+      
+      // Calcola l'utilizzo del saldo se è presente il saldo finale
+      const saldoUtilizzato = saldo.saldoFinale !== null && saldo.saldoFinale !== undefined 
+        ? saldoTotale - saldo.saldoFinale 
+        : null
+      const percentualeUtilizzata = saldoUtilizzato !== null && saldoTotale > 0 
+        ? (saldoUtilizzato / saldoTotale * 100) 
+        : null
+      
+      return NextResponse.json({
+        ...saldo,
+        ricariche: saldo.ricariche,
+        saldoTotale,
+        totaleRicariche,
+        saldoUtilizzato,
+        percentualeUtilizzata
+      })
+    }
+    
+    // Per una sede specifica, filtra le ricariche per quella sede
+    const ricaricheSede = sede ? saldo.ricariche.filter(r => r.sede === sede) : saldo.ricariche
+    const totaleRicariche = ricaricheSede.reduce((sum, ricarica) => sum + ricarica.importo, 0)
     const saldoTotale = saldo.saldoIniziale + totaleRicariche
+    
+    // Calcola l'utilizzo del saldo se è presente il saldo finale
+    const saldoUtilizzato = saldo.saldoFinale !== null && saldo.saldoFinale !== undefined 
+      ? saldoTotale - saldo.saldoFinale 
+      : null
+    const percentualeUtilizzata = saldoUtilizzato !== null && saldoTotale > 0 
+      ? (saldoUtilizzato / saldoTotale * 100) 
+      : null
     
     return NextResponse.json({
       ...saldo,
+      ricariche: ricaricheSede,
       saldoTotale,
-      totaleRicariche
+      totaleRicariche,
+      saldoUtilizzato,
+      percentualeUtilizzata
     })
     
   } catch (error) {

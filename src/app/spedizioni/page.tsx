@@ -26,6 +26,7 @@ interface Spedizione {
   sede: string
   metodoPagamento: string
   createdAt: string
+  nominativoMittente?: string
 }
 
 export default function SpedizioniPage() {
@@ -37,11 +38,13 @@ export default function SpedizioniPage() {
   const [imballaggio, setImballaggio] = useState(false)
   const [quantitaImballaggi, setQuantitaImballaggi] = useState(1)
   const [metodoPagamento, setMetodoPagamento] = useState('CONTANTI')
+  const [nominativoMittente, setNominativoMittente] = useState('')
   const [editingSpedizione, setEditingSpedizione] = useState<Spedizione | null>(null)
   const [editPeso, setEditPeso] = useState('')
   const [editPellicola, setEditPellicola] = useState('')
   const [editImballaggio, setEditImballaggio] = useState('')
   const [editMetodoPagamento, setEditMetodoPagamento] = useState('CONTANTI')
+  const [editNominativoMittente, setEditNominativoMittente] = useState('')
   const [loading, setLoading] = useState(false)
   const [prezzoCalcolato, setPrezzoCalcolato] = useState<{
     poste: number;
@@ -118,7 +121,8 @@ export default function SpedizioniPage() {
           imballaggio,
           quantitaImballaggi,
           metodoPagamento,
-          sede: currentSede?.id
+          sede: currentSede?.id,
+          nominativoMittente: nominativoMittente.trim() || null
         })
       })
 
@@ -132,6 +136,7 @@ export default function SpedizioniPage() {
         setImballaggio(false)
         setQuantitaImballaggi(1)
         setMetodoPagamento('CONTANTI')
+        setNominativoMittente('')
         setPrezzoCalcolato(null)
         alert(`Spedizione di ${parseFloat(peso)}kg registrata con successo!`)
       } else {
@@ -151,6 +156,7 @@ export default function SpedizioniPage() {
     setEditPellicola(spedizione.quantitaPellicole.toString())
     setEditImballaggio(spedizione.quantitaImballaggi.toString())
     setEditMetodoPagamento(spedizione.metodoPagamento)
+    setEditNominativoMittente(spedizione.nominativoMittente || '')
   }
 
   const handleUpdateSpedizione = async () => {
@@ -168,7 +174,8 @@ export default function SpedizioniPage() {
           quantitaImballaggi: parseInt(editImballaggio) || 1,
           turno: editingSpedizione.turno,
           sede: currentSede?.id || editingSpedizione.sede,
-          metodoPagamento: editMetodoPagamento
+          metodoPagamento: editMetodoPagamento,
+          nominativoMittente: editNominativoMittente.trim() || null
         })
       })
 
@@ -182,6 +189,7 @@ export default function SpedizioniPage() {
         setEditPellicola('')
         setEditImballaggio('')
         setEditMetodoPagamento('CONTANTI')
+        setEditNominativoMittente('')
         alert('Spedizione modificata con successo!')
       } else {
         throw new Error('Errore nella modifica della spedizione')
@@ -367,6 +375,20 @@ export default function SpedizioniPage() {
                     value={peso}
                     onChange={(e) => setPeso(e.target.value)}
                     placeholder="Es. 2.5"
+                    className="h-12 border-2 border-gray-200 hover:border-orange-400 transition-colors text-lg"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold mb-3 block text-gray-700 flex items-center gap-2">
+                    <Package className="w-4 h-4" />
+                    Nominativo Mittente (opzionale)
+                  </label>
+                  <Input
+                    type="text"
+                    value={nominativoMittente}
+                    onChange={(e) => setNominativoMittente(e.target.value)}
+                    placeholder="Es. Mario Rossi"
                     className="h-12 border-2 border-gray-200 hover:border-orange-400 transition-colors text-lg"
                   />
                 </div>
@@ -659,6 +681,16 @@ export default function SpedizioniPage() {
                               />
                             </div>
                             <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Nominativo Mittente</label>
+                              <Input
+                                type="text"
+                                value={editNominativoMittente}
+                                onChange={(e) => setEditNominativoMittente(e.target.value)}
+                                className="w-full"
+                                placeholder="Nome del mittente"
+                              />
+                            </div>
+                            <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">Metodo Pagamento</label>
                               <Select value={editMetodoPagamento} onValueChange={setEditMetodoPagamento}>
                                 <SelectTrigger className="w-full">
@@ -718,6 +750,15 @@ export default function SpedizioniPage() {
                                 <Scale className="w-5 h-5 text-yellow-500" />
                                 <span className="text-2xl font-bold text-gray-800">{spedizione.peso}kg</span>
                               </div>
+                              
+                              {spedizione.nominativoMittente && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-gray-500">Mittente:</span>
+                                  <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium">
+                                    {spedizione.nominativoMittente}
+                                  </span>
+                                </div>
+                              )}
                               
                               <div className="flex gap-2 flex-wrap">
                                 {spedizione.pellicola && (

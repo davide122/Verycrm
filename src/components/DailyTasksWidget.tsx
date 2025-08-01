@@ -26,6 +26,8 @@ interface TodoTask {
   assegnatoA?: string
   createdAt: string
   updatedAt: string
+  isScaduto?: boolean
+  prioritaEffettiva?: number
 }
 
 export default function DailyTasksWidget() {
@@ -64,7 +66,7 @@ export default function DailyTasksWidget() {
     }
   }, [currentSede])
 
-  // Filtra solo i task attivi di oggi
+  // Filtra i task attivi (di oggi + scaduti)
   const activeTodayTasks = useMemo(() => {
     const now = new Date()
     const today = now.toISOString().split('T')[0]
@@ -72,17 +74,22 @@ export default function DailyTasksWidget() {
     return tasks.filter(task => {
       const isToday = task.dataScadenza?.startsWith(today)
       const isActive = task.stato === 'DA_FARE' || task.stato === 'IN_CORSO'
-      return isToday && isActive
+      const isOverdue = task.isScaduto
+      return (isToday || isOverdue) && isActive
     }).sort((a, b) => {
-      // Ordina prima per orario di inizio
+      // Prima i task scaduti
+      if (a.isScaduto && !b.isScaduto) return -1
+      if (!a.isScaduto && b.isScaduto) return 1
+      
+      // Poi ordina per orario di inizio
       if (a.orarioInizio && b.orarioInizio) {
         return a.orarioInizio.localeCompare(b.orarioInizio)
       }
       // Task con orario vengono prima di quelli senza
       if (a.orarioInizio && !b.orarioInizio) return -1
       if (!a.orarioInizio && b.orarioInizio) return 1
-      // Infine ordina per priorità (decrescente)
-      return b.priorita - a.priorita
+      // Infine ordina per priorità effettiva
+      return (b.prioritaEffettiva || b.priorita) - (a.prioritaEffettiva || a.priorita)
     })
   }, [tasks])
 
@@ -142,10 +149,20 @@ export default function DailyTasksWidget() {
             {activeTodayTasks.map(task => (
               <div 
                 key={task.id} 
-                className={`p-3 rounded-md border ${getPriorityColor(task.priorita)}`}
+                className={`p-3 rounded-md border ${
+                  task.isScaduto ? 'bg-red-50 border-red-300 text-red-900' : getPriorityColor(task.priorita)
+                }`}
               >
                 <div className="flex justify-between items-start">
-                  <div className="font-medium">{task.titolo}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="font-medium">{task.titolo}</div>
+                    {task.isScaduto && (
+                      <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        SCADUTO
+                      </Badge>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1">
                     {getStatusIcon(task.stato)}
                   </div>

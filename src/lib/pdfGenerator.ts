@@ -375,3 +375,200 @@ export function generateChiusuraReport(
   // Salva il PDF
   doc.save(fileName)
 }
+
+// Interfacce per il report mensile
+interface MonthlyReportData {
+  mese: string
+  sede: {
+    id: string
+    nome: string
+  }
+  giorni: {
+    data: string
+    servizi: ServizioEffettuato[]
+    spedizioni: Spedizione[]
+    totaliGiorno: {
+      entrate: number
+      guadagni: number
+      operazioni: number
+    }
+  }[]
+  totali: {
+    servizi: {
+      entrate: number
+      costi: number
+      guadagni: number
+      quantita: number
+    }
+    spedizioni: {
+      entrate: number
+      costi: number
+      guadagni: number
+      quantita: number
+    }
+    generali: {
+      entrate: number
+      guadagni: number
+      operazioni: number
+    }
+  }
+  pagamenti: {
+    servizi: {
+      contanti: number
+      pos: number
+    }
+    spedizioni: {
+      contanti: number
+      pos: number
+    }
+    totali: {
+      contanti: number
+      pos: number
+    }
+  }
+}
+
+export async function generateMonthlyReport(reportData: MonthlyReportData): Promise<Buffer> {
+  const doc = new jsPDF()
+  
+  // Header
+  doc.setFontSize(20)
+  doc.setFont('helvetica', 'bold')
+  doc.text('REPORT MENSILE', 105, 20, { align: 'center' })
+  
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`Sede: ${reportData.sede.nome}`, 20, 35)
+  doc.text(`Mese: ${reportData.mese}`, 20, 45)
+  doc.text(`Generato il: ${formatDate(new Date())}`, 20, 55)
+  
+  let yPosition = 70
+  
+  // Riepilogo totali mensili
+  doc.setFontSize(16)
+  doc.setFont('helvetica', 'bold')
+  doc.text('RIEPILOGO MENSILE', 20, yPosition)
+  yPosition += 15
+  
+  const totaliData = [
+    ['Categoria', 'Entrate', 'Guadagni', 'Operazioni'],
+    [
+      'Servizi',
+      formatCurrency(reportData.totali.servizi.entrate),
+      formatCurrency(reportData.totali.servizi.guadagni),
+      reportData.totali.servizi.quantita.toString()
+    ],
+    [
+      'Spedizioni',
+      formatCurrency(reportData.totali.spedizioni.entrate),
+      formatCurrency(reportData.totali.spedizioni.guadagni),
+      reportData.totali.spedizioni.quantita.toString()
+    ],
+    [
+      'TOTALE',
+      formatCurrency(reportData.totali.generali.entrate),
+      formatCurrency(reportData.totali.generali.guadagni),
+      reportData.totali.generali.operazioni.toString()
+    ]
+  ]
+  
+  autoTable(doc, {
+    startY: yPosition,
+    head: [totaliData[0]],
+    body: totaliData.slice(1),
+    theme: 'grid',
+    headStyles: { fillColor: [41, 128, 185] },
+    styles: { fontSize: 10 },
+    didParseCell: function(data: CellHookData) {
+      if (data.row.index === totaliData.length - 2) {
+        data.cell.styles.fontStyle = 'bold'
+        data.cell.styles.fillColor = [230, 230, 230]
+      }
+    }
+  })
+  
+  yPosition = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 20
+  
+  // Riepilogo pagamenti
+  doc.setFontSize(16)
+  doc.setFont('helvetica', 'bold')
+  doc.text('RIEPILOGO PAGAMENTI', 20, yPosition)
+  yPosition += 15
+  
+  const pagamentiData = [
+    ['Tipologia', 'Contanti', 'POS', 'Totale'],
+    [
+      'Servizi',
+      formatCurrency(reportData.pagamenti.servizi.contanti),
+      formatCurrency(reportData.pagamenti.servizi.pos),
+      formatCurrency(reportData.pagamenti.servizi.contanti + reportData.pagamenti.servizi.pos)
+    ],
+    [
+      'Spedizioni',
+      formatCurrency(reportData.pagamenti.spedizioni.contanti),
+      formatCurrency(reportData.pagamenti.spedizioni.pos),
+      formatCurrency(reportData.pagamenti.spedizioni.contanti + reportData.pagamenti.spedizioni.pos)
+    ],
+    [
+      'TOTALE',
+      formatCurrency(reportData.pagamenti.totali.contanti),
+      formatCurrency(reportData.pagamenti.totali.pos),
+      formatCurrency(reportData.pagamenti.totali.contanti + reportData.pagamenti.totali.pos)
+    ]
+  ]
+  
+  autoTable(doc, {
+    startY: yPosition,
+    head: [pagamentiData[0]],
+    body: pagamentiData.slice(1),
+    theme: 'grid',
+    headStyles: { fillColor: [41, 128, 185] },
+    styles: { fontSize: 10 },
+    didParseCell: function(data: CellHookData) {
+      if (data.row.index === pagamentiData.length - 2) {
+        data.cell.styles.fontStyle = 'bold'
+        data.cell.styles.fillColor = [230, 230, 230]
+      }
+    }
+  })
+  
+  yPosition = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 20
+  
+  // Dettaglio giornaliero
+  doc.setFontSize(16)
+  doc.setFont('helvetica', 'bold')
+  doc.text('DETTAGLIO GIORNALIERO', 20, yPosition)
+  yPosition += 15
+  
+  const giorniData = [
+    ['Data', 'Entrate', 'Guadagni', 'Operazioni']
+  ]
+  
+  reportData.giorni.forEach(giorno => {
+    giorniData.push([
+      formatDate(new Date(giorno.data)),
+      formatCurrency(giorno.totaliGiorno.entrate),
+      formatCurrency(giorno.totaliGiorno.guadagni),
+      giorno.totaliGiorno.operazioni.toString()
+    ])
+  })
+  
+  autoTable(doc, {
+    startY: yPosition,
+    head: [giorniData[0]],
+    body: giorniData.slice(1),
+    theme: 'grid',
+    headStyles: { fillColor: [41, 128, 185] },
+    styles: { fontSize: 9 },
+    columnStyles: {
+      0: { cellWidth: 40 },
+      1: { cellWidth: 40 },
+      2: { cellWidth: 40 },
+      3: { cellWidth: 30 }
+    }
+  })
+  
+  // Converti in Buffer
+  const pdfOutput = doc.output('arraybuffer')
+  return Buffer.from(pdfOutput)
+}

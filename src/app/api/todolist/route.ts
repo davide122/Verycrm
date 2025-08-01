@@ -23,10 +23,16 @@ export async function GET(request: NextRequest) {
     const dataFine = new Date(data)
     dataFine.setHours(23, 59, 59, 999)
 
+    const oggi = new Date()
+    oggi.setHours(0, 0, 0, 0)
+
     // Cerca i task per la data e sede specificate
     const tasks = await prisma.todoTask.findMany({
       where: {
         sede: sede,
+        stato: {
+          not: 'COMPLETATO'
+        },
         OR: [
           // Task senza data di scadenza
           { dataScadenza: null },
@@ -35,6 +41,15 @@ export async function GET(request: NextRequest) {
             dataScadenza: {
               gte: dataInizio,
               lte: dataFine
+            }
+          },
+          // Task scaduti (data di scadenza precedente a oggi) che non sono completati
+          {
+            dataScadenza: {
+              lt: oggi
+            },
+            stato: {
+              in: ['DA_FARE', 'IN_CORSO']
             }
           }
         ]
@@ -46,8 +61,38 @@ export async function GET(request: NextRequest) {
       ]
     })
 
-    console.log('GET /api/todolist - Task trovati:', tasks.length)
-    return NextResponse.json(tasks)
+    // Aggiungi un flag per identificare i task scaduti
+    const tasksConFlag = tasks.map(task => {
+      const isScaduto = task.dataScadenza && new Date(task.dataScadenza) < oggi && task.stato !== 'COMPLETATO'
+      return {
+        ...task,
+        isScaduto: isScaduto || false,
+        // Aumenta la priorità dei task scaduti
+        prioritaEffettiva: isScaduto ? task.priorita + 100 : task.priorita
+      }
+    })
+
+    // Riordina considerando i task scaduti
+    tasksConFlag.sort((a, b) => {
+      // Prima i task scaduti
+      if (a.isScaduto && !b.isScaduto) return -1
+      if (!a.isScaduto && b.isScaduto) return 1
+      
+      // Poi per priorità effettiva
+      if (a.prioritaEffettiva !== b.prioritaEffettiva) {
+        return b.prioritaEffettiva - a.prioritaEffettiva
+      }
+      
+      // Infine per data di scadenza
+      if (a.dataScadenza && b.dataScadenza) {
+        return new Date(a.dataScadenza).getTime() - new Date(b.dataScadenza).getTime()
+      }
+      
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    })
+
+    console.log('GET /api/todolist - Task trovati:', tasksConFlag.length)
+    return NextResponse.json(tasksConFlag)
   } catch (error) {
     console.error('Errore nella richiesta GET /api/todolist:', error)
     return NextResponse.json({ 

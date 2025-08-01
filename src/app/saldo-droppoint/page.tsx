@@ -275,7 +275,7 @@ export default function SaldoDroppointPage() {
                   <CardTitle className="text-2xl">Riepilogo Saldi</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid md:grid-cols-3 gap-6">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div className="text-center">
                       <div className="text-3xl font-bold">{formatCurrency(saldoData.saldoIniziale)}</div>
                       <div className="text-purple-100">Saldo Iniziale</div>
@@ -286,7 +286,105 @@ export default function SaldoDroppointPage() {
                     </div>
                     <div className="text-center">
                       <div className="text-4xl font-bold">{formatCurrency(saldoData.saldoTotale)}</div>
-                      <div className="text-purple-100">Saldo Totale</div>
+                      <div className="text-purple-100">Saldo Teorico</div>
+                    </div>
+                    {saldoData.saldoFinale !== null && saldoData.saldoFinale !== undefined && (
+                      <div className="text-center">
+                        <div className="text-3xl font-bold">{formatCurrency(saldoData.saldoFinale)}</div>
+                        <div className="text-purple-100">Saldo Finale</div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Calcolo Saldo Utilizzato */}
+                  {saldoData.saldoFinale !== null && saldoData.saldoFinale !== undefined && (
+                    <div className="mt-8 pt-6 border-t border-purple-300">
+                      <div className="text-center">
+                        <div className="text-lg font-semibold text-purple-100 mb-2">Analisi Utilizzo Saldo</div>
+                        <div className="grid md:grid-cols-3 gap-4">
+                          <div className="bg-white/10 rounded-lg p-4">
+                            <div className="text-2xl font-bold">
+                              {formatCurrency(saldoData.saldoTotale - (saldoData.saldoFinale || 0))}
+                            </div>
+                            <div className="text-sm text-purple-100">Saldo Utilizzato</div>
+                            <div className="text-xs text-purple-200 mt-1">
+                              (Teorico - Finale)
+                            </div>
+                          </div>
+                          <div className="bg-white/10 rounded-lg p-4">
+                            <div className="text-2xl font-bold">
+                              {((saldoData.saldoTotale - (saldoData.saldoFinale || 0)) / saldoData.saldoTotale * 100).toFixed(1)}%
+                            </div>
+                            <div className="text-sm text-purple-100">Percentuale Utilizzata</div>
+                          </div>
+                          <div className="bg-white/10 rounded-lg p-4">
+                            <div className={`text-2xl font-bold ${
+                              Math.abs(saldoData.saldoTotale - (saldoData.saldoFinale || 0)) < 0.01 
+                                ? 'text-green-300' 
+                                : saldoData.saldoTotale > (saldoData.saldoFinale || 0) 
+                                  ? 'text-yellow-300' 
+                                  : 'text-red-300'
+                            }`}>
+                              {Math.abs(saldoData.saldoTotale - (saldoData.saldoFinale || 0)) < 0.01 
+                                ? '✓ Corretto' 
+                                : saldoData.saldoTotale > (saldoData.saldoFinale || 0) 
+                                  ? '⚠ Utilizzato' 
+                                  : '⚠ Anomalia'
+                              }
+                            </div>
+                            <div className="text-sm text-purple-100">Stato</div>
+                            <div className="text-xs text-purple-200 mt-1">
+                              {Math.abs(saldoData.saldoTotale - (saldoData.saldoFinale || 0)) < 0.01 
+                                ? 'Nessun utilizzo' 
+                                : saldoData.saldoTotale > (saldoData.saldoFinale || 0) 
+                                  ? 'Saldo consumato' 
+                                  : 'Saldo finale > teorico'
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Spiegazione Calcolo Utilizzo */}
+            {saldoData && saldoData.saldoFinale !== null && saldoData.saldoFinale !== undefined && (
+              <Card className="mb-8 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-blue-700">
+                    <DollarSign className="w-5 h-5" />
+                    Come Funziona il Calcolo
+                  </CardTitle>
+                  <CardDescription className="text-blue-600">
+                    Spiegazione del calcolo dell&apos;utilizzo del saldo Droppoint
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-blue-800">📊 Calcolo del Saldo Teorico</h4>
+                      <div className="text-sm text-gray-700 space-y-2">
+                        <p><strong>Saldo Teorico</strong> = Saldo Iniziale + Ricariche</p>
+                        <p>Questo rappresenta quanto saldo dovrebbe essere disponibile nel sistema.</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-blue-800">🔍 Calcolo dell&apos;Utilizzo</h4>
+                      <div className="text-sm text-gray-700 space-y-2">
+                        <p><strong>Saldo Utilizzato</strong> = Saldo Teorico - Saldo Finale</p>
+                        <p>Questo mostra quanto saldo è stato effettivamente consumato durante la giornata.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-blue-100 p-4 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-blue-800 mb-2">💡 Interpretazione dei Risultati</h4>
+                    <div className="text-sm text-gray-700 space-y-1">
+                      <p><span className="text-green-600 font-semibold">✓ Corretto:</span> Il saldo finale corrisponde al teorico (nessun utilizzo)</p>
+                      <p><span className="text-yellow-600 font-semibold">⚠ Utilizzato:</span> Il saldo è stato consumato normalmente</p>
+                      <p><span className="text-red-600 font-semibold">⚠ Anomalia:</span> Il saldo finale è maggiore del teorico (possibile errore)</p>
                     </div>
                   </div>
                 </CardContent>
