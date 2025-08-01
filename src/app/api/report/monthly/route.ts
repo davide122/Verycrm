@@ -2,39 +2,33 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { generateMonthlyReport } from '@/lib/pdfGenerator'
 
-interface ServizioConDettagli {
-  id: number
+interface ServizioEffettuato {
+  id: string
   servizioId: number
   quantita: number
   prezzoCliente: number
   costoTotale: number
   guadagno: number
   turno: string
-  createdAt: Date
   sede: string
-  metodoPagamento: string
+  createdAt: string
   servizio: {
     nome: string
   }
 }
 
-interface SpedizioneDettagli {
-  id: number
+interface Spedizione {
+  id: string
   peso: number
   prezzoCliente: number
   guadagno: number
   rimborsoSpese: number
-  nominativoMittente: string | null
-  metodoPagamento: string
-  createdAt: Date
-  turno: string
-  sede: string
 }
 
 interface DayData {
   data: string
-  servizi: ServizioConDettagli[]
-  spedizioni: SpedizioneDettagli[]
+  servizi: ServizioEffettuato[]
+  spedizioni: Spedizione[]
   totaliGiorno: {
     entrate: number
     guadagni: number
@@ -182,7 +176,20 @@ export async function GET(request: NextRequest) {
         })
       }
       const giornoData = giorniMap.get(giorno)!
-      giornoData.servizi.push(servizio)
+      giornoData.servizi.push({
+        id: servizio.id.toString(),
+        servizioId: servizio.servizioId,
+        quantita: servizio.quantita,
+        prezzoCliente: servizio.prezzoCliente,
+        costoTotale: servizio.costoTotale,
+        guadagno: servizio.guadagno,
+        turno: servizio.turno,
+        sede: servizio.sede,
+        createdAt: servizio.createdAt.toISOString(),
+        servizio: {
+          nome: servizio.servizio.nome
+        }
+      })
       giornoData.totaliGiorno.entrate += servizio.prezzoCliente
       giornoData.totaliGiorno.guadagni += servizio.guadagno
       giornoData.totaliGiorno.operazioni += servizio.quantita
@@ -200,7 +207,13 @@ export async function GET(request: NextRequest) {
         })
       }
       const giornoData = giorniMap.get(giorno)!
-      giornoData.spedizioni.push(spedizione)
+      giornoData.spedizioni.push({
+        id: spedizione.id.toString(),
+        peso: spedizione.peso,
+        prezzoCliente: spedizione.prezzoCliente,
+        guadagno: spedizione.guadagno,
+        rimborsoSpese: spedizione.rimborsoSpese
+      })
       giornoData.totaliGiorno.entrate += spedizione.prezzoCliente
       giornoData.totaliGiorno.guadagni += spedizione.guadagno
       giornoData.totaliGiorno.operazioni += 1
