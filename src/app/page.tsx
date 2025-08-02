@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Package, FileText, BarChart3, Clock, TrendingUp, Users, Calendar, Star, ArrowRight, Zap, Settings, Calculator, DollarSign, Building2 } from 'lucide-react'
+import { Package, FileText, BarChart3, Clock, TrendingUp, Users, Calendar, Star, ArrowRight, Zap, Settings, Calculator, DollarSign, Building2, CheckSquare } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { formatCurrency } from '@/lib/utils'
 import { useSede } from '@/hooks/useSede'
@@ -120,6 +120,14 @@ export default function Home() {
       href: '/spedizioni',
       color: 'bg-yellow-500',
       stats: `${stats.spedizioni} spedizioni oggi`
+    },
+    {
+      icon: CheckSquare,
+      title: 'TodoList',
+      description: 'Gestione attività giornaliere, promemoria e task operativi',
+      href: '/todolist',
+      color: 'bg-green-600',
+      stats: 'Organizza il lavoro'
     },
     {
       icon: BarChart3,

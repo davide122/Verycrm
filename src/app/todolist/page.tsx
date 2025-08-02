@@ -69,7 +69,7 @@ const TaskCard = ({ task, onUpdateStatus, onDelete }: {
   }
   
   return (
-    <Card className={`mb-3 shadow-sm hover:shadow-md transition-shadow border-l-4 ${
+    <Card className={`mb-2 sm:mb-3 shadow-sm hover:shadow-md transition-shadow border-l-4 ${
       task.isScaduto ? 'bg-red-50 border-red-500 shadow-red-100' : ''
     }`} 
       style={{ 
@@ -78,24 +78,25 @@ const TaskCard = ({ task, onUpdateStatus, onDelete }: {
           task.priorita === 1 ? '#eab308' : '#9ca3af' 
       }}
     >
-      <CardContent className="p-3">
-        <div className="flex justify-between items-start mb-2">
-          <div className="flex items-center gap-2">
-            <h4 className={`font-medium ${
+      <CardContent className="p-2 sm:p-3">
+        <div className="flex justify-between items-start mb-1 sm:mb-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
+            <h4 className={`font-medium text-sm sm:text-base truncate ${
               task.isScaduto ? 'text-red-900' : 'text-gray-900'
             }`}>{task.titolo}</h4>
             {task.isScaduto && (
-              <Badge variant="destructive" className="text-xs px-2 py-0.5">
-                <AlertCircle className="w-3 h-3 mr-1" />
-                SCADUTO
+              <Badge variant="destructive" className="text-xs px-1 py-0.5 sm:px-2 flex-shrink-0">
+                <AlertCircle className="w-2 h-2 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
+                <span className="hidden sm:inline">SCADUTO</span>
+                <span className="sm:hidden">!</span>
               </Badge>
             )}
           </div>
-          <div className="relative">
+          <div className="relative flex-shrink-0">
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-8 w-8" 
+              className="h-6 w-6 sm:h-8 sm:w-8" 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               <MoreHorizontal className="h-4 w-4" />
@@ -536,32 +537,73 @@ export default function TodoList() {
       return grouped
     }, [tasks])
     
-
-    
     return (
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <CalendarComponent
-          mode="single"
-          selected={dataSelezionata}
-          onSelect={(date) => date && setDataSelezionata(date)}
-          className="rounded-md border"
-          modifiers={{
-            booked: (date) => {
-              const dateString = format(date, 'yyyy-MM-dd')
-              return Boolean(tasksByDate[dateString]?.length)
-            },
-          }}
-          modifiersClassNames={{
-            booked: 'bg-blue-100 text-blue-900 font-bold',
-          }}
-        />
-        
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold mb-4">
-            Attività per {format(dataSelezionata, 'dd MMMM yyyy', { locale: it })}
-          </h3>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Sezione Calendario */}
+        <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Calendario Attività</h2>
+            <p className="text-sm text-gray-600">Seleziona una data per visualizzare le attività</p>
+          </div>
           
-          <div className="space-y-3">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-100">
+            <CalendarComponent
+              mode="single"
+              selected={dataSelezionata}
+              onSelect={(date) => date && setDataSelezionata(date)}
+              className="mx-auto bg-white rounded-lg shadow-sm border border-gray-200 p-3"
+              modifiers={{
+                booked: (date) => {
+                  const dateString = format(date, 'yyyy-MM-dd')
+                  return Boolean(tasksByDate[dateString]?.length)
+                },
+                hasHighPriority: (date) => {
+                  const dateString = format(date, 'yyyy-MM-dd')
+                  return Boolean(tasksByDate[dateString]?.some(task => task.priorita === 2))
+                },
+                hasMediumPriority: (date) => {
+                  const dateString = format(date, 'yyyy-MM-dd')
+                  return Boolean(tasksByDate[dateString]?.some(task => task.priorita === 1) && !tasksByDate[dateString]?.some(task => task.priorita === 2))
+                }
+              }}
+              modifiersClassNames={{
+                booked: 'bg-blue-100 text-blue-900 font-semibold border border-blue-200',
+                hasHighPriority: 'bg-red-100 text-red-900 font-bold border border-red-300',
+                hasMediumPriority: 'bg-yellow-100 text-yellow-900 font-semibold border border-yellow-300'
+              }}
+            />
+          </div>
+          
+          {/* Legenda */}
+          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Legenda:</h4>
+            <div className="flex flex-wrap gap-3 text-xs">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
+                <span className="text-gray-600">Alta priorità</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-yellow-100 border border-yellow-300 rounded"></div>
+                <span className="text-gray-600">Media priorità</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-blue-100 border border-blue-200 rounded"></div>
+                <span className="text-gray-600">Con attività</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Sezione Attività del Giorno */}
+        <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+          <div className="mb-4">
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">
+              Attività per {format(dataSelezionata, 'dd MMMM yyyy', { locale: it })}
+            </h3>
+            <p className="text-sm text-gray-600">Gestisci le attività del giorno selezionato</p>
+          </div>
+          
+          <div className="space-y-3 max-h-96 overflow-y-auto">
             {tasksByDate[format(dataSelezionata, 'yyyy-MM-dd')]?.length ? (
               tasksByDate[format(dataSelezionata, 'yyyy-MM-dd')].map(task => (
                 <TaskCard 
@@ -572,11 +614,11 @@ export default function TodoList() {
                 />
               ))
             ) : (
-              <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
-                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg border border-gray-200">
+                <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-700 mb-2">Nessuna attività per questa data</h3>
-                <p className="text-gray-500 mb-4">Non ci sono attività programmate per il giorno selezionato</p>
-                <Button onClick={() => setShowForm(true)} className="bg-blue-600 hover:bg-blue-700">
+                <p className="text-gray-500 mb-6">Non ci sono attività programmate per il giorno selezionato</p>
+                <Button onClick={() => setShowForm(true)} className="bg-blue-600 hover:bg-blue-700 shadow-md">
                   <Plus className="h-4 w-4 mr-2" />
                   Aggiungi Attività
                 </Button>
@@ -662,38 +704,42 @@ export default function TodoList() {
   }
   
   return (
-    <div className="container mx-auto p-4">
-      <div className="mb-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">Attività di {currentSede.nome}</h1>
-            <p className="text-gray-600">Gestisci le attività della sede</p>
+    <div className="container mx-auto p-2 sm:p-4">
+      <div className="mb-4 sm:mb-6">
+        <div className="flex flex-col gap-4 mb-4 sm:mb-6">
+          <div className="text-center sm:text-left">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Attività di {currentSede.nome}</h1>
+            <p className="text-sm sm:text-base text-gray-600">Gestisci le attività della sede</p>
           </div>
           
-          <div className="flex items-center gap-3">
-            <Tabs defaultValue="board" onValueChange={(value) => setViewMode(value as 'board' | 'calendar')}>
-              <TabsList>
-                <TabsTrigger value="board">
-                  <ListTodo className="w-4 h-4 mr-2" />
-                  Board
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <Tabs defaultValue="board" onValueChange={(value) => setViewMode(value as 'board' | 'calendar')} className="w-full sm:w-auto">
+              <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:grid-cols-none sm:flex">
+                <TabsTrigger value="board" className="text-xs sm:text-sm">
+                  <ListTodo className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Board</span>
+                  <span className="sm:hidden">Lista</span>
                 </TabsTrigger>
-                <TabsTrigger value="calendar">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Calendario
+                <TabsTrigger value="calendar" className="text-xs sm:text-sm">
+                  <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Calendario</span>
+                  <span className="sm:hidden">Cal</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
             
-            <Button onClick={() => setShowForm(!showForm)}>
+            <Button onClick={() => setShowForm(!showForm)} className="w-full sm:w-auto text-sm">
               {showForm ? (
                 <>
-                  <X className="w-4 h-4 mr-2" />
-                  Chiudi
+                  <X className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Chiudi</span>
+                  <span className="sm:hidden">✕</span>
                 </>
               ) : (
                 <>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nuova Attività
+                  <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Nuova Attività</span>
+                  <span className="sm:hidden">Aggiungi</span>
                 </>
               )}
             </Button>
@@ -709,35 +755,39 @@ export default function TodoList() {
         )}
         
         {/* Filtri */}
-        <div className="flex flex-wrap gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">Data:</label>
+        <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4 mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <label className="text-xs sm:text-sm font-medium whitespace-nowrap">Data:</label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="justify-start text-left font-normal">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {format(dataSelezionata, 'dd MMMM yyyy', { locale: it })}
+                <Button variant="outline" className="justify-start text-left font-normal w-full sm:w-auto text-xs sm:text-sm">
+                  <Calendar className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">{format(dataSelezionata, 'dd MMMM yyyy', { locale: it })}</span>
+                  <span className="sm:hidden">{format(dataSelezionata, 'dd/MM', { locale: it })}</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={dataSelezionata}
-                  onSelect={(date) => date && setDataSelezionata(date)}
-                  initialFocus
-                />
+                <div className="bg-white p-3 rounded-lg shadow-lg">
+                  <CalendarComponent
+                    mode="single"
+                    selected={dataSelezionata}
+                    onSelect={(date) => date && setDataSelezionata(date)}
+                    className="bg-white border-0"
+                    initialFocus
+                  />
+                </div>
               </PopoverContent>
             </Popover>
           </div>
           
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">Stato:</label>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <label className="text-xs sm:text-sm font-medium whitespace-nowrap">Stato:</label>
             <Select value={filtroStato} onValueChange={setFiltroStato}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Tutti gli stati" />
+              <SelectTrigger className="w-full sm:w-[140px] text-xs sm:text-sm">
+                <SelectValue placeholder="Tutti" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="tutti">Tutti gli stati</SelectItem>
+                <SelectItem value="tutti">Tutti</SelectItem>
                 <SelectItem value="DA_FARE">Da fare</SelectItem>
                 <SelectItem value="IN_CORSO">In corso</SelectItem>
                 <SelectItem value="COMPLETATO">Completato</SelectItem>
@@ -746,14 +796,14 @@ export default function TodoList() {
             </Select>
           </div>
           
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">Priorità:</label>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <label className="text-xs sm:text-sm font-medium whitespace-nowrap">Priorità:</label>
             <Select value={filtroPriorita} onValueChange={setFiltroPriorita}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Tutte le priorità" />
+              <SelectTrigger className="w-full sm:w-[140px] text-xs sm:text-sm">
+                <SelectValue placeholder="Tutte" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="tutti">Tutte le priorità</SelectItem>
+                <SelectItem value="tutti">Tutte</SelectItem>
                 <SelectItem value="0">Bassa</SelectItem>
                 <SelectItem value="1">Media</SelectItem>
                 <SelectItem value="2">Alta</SelectItem>
@@ -769,8 +819,8 @@ export default function TodoList() {
         </div>
       ) : (
         viewMode === 'board' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-gray-50 rounded-lg p-4 h-[calc(100vh-300px)] flex flex-col">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+            <div className="bg-gray-50 rounded-lg p-2 sm:p-4 h-[calc(100vh-350px)] sm:h-[calc(100vh-300px)] flex flex-col">
               <TaskColumn 
                 title="Da fare" 
                 icon={<AlertCircle className="w-5 h-5 text-gray-600" />}

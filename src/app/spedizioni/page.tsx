@@ -259,28 +259,29 @@ export default function SpedizioniPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Link href="/">
-              <Button variant="outline" size="icon" className="hover:scale-105 transition-transform">
+              <Button variant="outline" size="sm" className="sm:size-icon hover:scale-105 transition-transform">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
             <Link href="/impostazioni">
-              <Button variant="outline" size="icon" className="hover:scale-105 transition-transform">
+              <Button variant="outline" size="sm" className="sm:size-icon hover:scale-105 transition-transform">
                 <Settings className="h-4 w-4" />
               </Button>
             </Link>
             <div>
-              <h1 className="text-4xl font-bold text-blue-900">
-              Spedizioni Express
+              <h1 className="text-2xl sm:text-4xl font-bold text-blue-900">
+              <span className="hidden sm:inline">Spedizioni Express</span>
+              <span className="sm:hidden">Spedizioni</span>
             </h1>
-              <div className="flex items-center gap-3 mt-1">
-                <p className="text-gray-600">Sistema avanzato gestione spedizioni</p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1">
+                <p className="text-gray-600 text-sm sm:text-base hidden sm:block">Sistema avanzato gestione spedizioni</p>
                 {currentSede && (
-                  <div className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-medium">
+                  <div className="flex items-center gap-2 bg-blue-600 text-white px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-medium">
                     <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                     <span>📍 {currentSede.nome}</span>
                   </div>
@@ -297,75 +298,77 @@ export default function SpedizioniPage() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
           <Card className="bg-white border border-gray-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm font-medium">Entrate Oggi</p>
-                  <p className="text-2xl font-bold text-blue-900">{formatCurrency(totaleGiornata.entrate)}</p>
+                  <p className="text-gray-600 text-xs sm:text-sm font-medium">Entrate Oggi</p>
+                  <p className="text-lg sm:text-2xl font-bold text-blue-900">{formatCurrency(totaleGiornata.entrate)}</p>
                 </div>
-                <TrendingUp className="w-6 h-6 text-yellow-500" />
+                <TrendingUp className="w-4 h-4 sm:w-6 sm:h-6 text-yellow-500" />
               </div>
             </CardContent>
           </Card>
           
           <Card className="bg-white border border-gray-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm font-medium">Guadagno</p>
-                  <p className="text-2xl font-bold text-blue-900">{formatCurrency(totaleGiornata.guadagni)}</p>
+                  <p className="text-gray-600 text-xs sm:text-sm font-medium">Guadagno</p>
+                  <p className="text-lg sm:text-2xl font-bold text-blue-900">{formatCurrency(totaleGiornata.guadagni)}</p>
                 </div>
-                <Star className="w-6 h-6 text-yellow-500" />
+                <Star className="w-4 h-4 sm:w-6 sm:h-6 text-yellow-500" />
               </div>
             </CardContent>
           </Card>
           
           <Card className="bg-white border border-gray-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm font-medium">Spedizioni</p>
-                  <p className="text-2xl font-bold text-blue-900">{spedizioni.length}</p>
+                  <p className="text-gray-600 text-xs sm:text-sm font-medium">Spedizioni</p>
+                  <p className="text-lg sm:text-2xl font-bold text-blue-900">{spedizioni.length}</p>
                 </div>
-                <Package className="w-6 h-6 text-yellow-500" />
+                <Package className="w-4 h-4 sm:w-6 sm:h-6 text-yellow-500" />
               </div>
             </CardContent>
           </Card>
           
           <Card className="bg-white border border-gray-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm font-medium">Peso Medio</p>
-                  <p className="text-2xl font-bold text-blue-900">{pesoMedio}kg</p>
+                  <p className="text-gray-600 text-xs sm:text-sm font-medium">Peso Medio</p>
+                  <p className="text-lg sm:text-2xl font-bold text-blue-900">{pesoMedio}kg</p>
                 </div>
-                <Scale className="w-6 h-6 text-yellow-500" />
+                <Scale className="w-4 h-4 sm:w-6 sm:h-6 text-yellow-500" />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-4 sm:gap-8">
           {/* Form per aggiungere spedizione - Migliorato */}
           <Card className="lg:col-span-2 bg-white border border-gray-200">
             <CardHeader className="bg-blue-900 text-white rounded-t-lg">
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <div className="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center">
-                  <Plus className="h-6 w-6 text-blue-900" />
+              <CardTitle className="flex items-center gap-2 sm:gap-3 text-lg sm:text-xl">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-500 rounded-lg flex items-center justify-center">
+                  <Plus className="h-4 w-4 sm:h-6 sm:w-6 text-blue-900" />
                 </div>
-                Nuova Spedizione
+                <span className="hidden sm:inline">Nuova Spedizione</span>
+                <span className="sm:hidden">Spedizione</span>
               </CardTitle>
-              <CardDescription className="text-blue-100">
-                Inserisci peso e seleziona servizi aggiuntivi per calcolare automaticamente il prezzo
+              <CardDescription className="text-blue-100 text-sm sm:text-base">
+                <span className="hidden sm:inline">Inserisci peso e seleziona servizi aggiuntivi per calcolare automaticamente il prezzo</span>
+                <span className="sm:hidden">Inserisci peso e servizi</span>
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-8">
-              <form onSubmit={handleSubmit} className="space-y-6">
+            <CardContent className="p-4 sm:p-8">
+              <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                 <div>
-                  <label className="text-sm font-semibold mb-3 block text-gray-700 flex items-center gap-2">
-                    <Scale className="w-4 h-4" />
+                  <label className="text-xs sm:text-sm font-semibold mb-2 sm:mb-3 block text-gray-700 flex items-center gap-2">
+                    <Scale className="w-3 h-3 sm:w-4 sm:h-4" />
                     Peso del Pacco (kg)
                   </label>
                   <Input
@@ -375,21 +378,22 @@ export default function SpedizioniPage() {
                     value={peso}
                     onChange={(e) => setPeso(e.target.value)}
                     placeholder="Es. 2.5"
-                    className="h-12 border-2 border-gray-200 hover:border-orange-400 transition-colors text-lg"
+                    className="h-10 sm:h-12 border-2 border-gray-200 hover:border-orange-400 transition-colors text-base sm:text-lg"
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm font-semibold mb-3 block text-gray-700 flex items-center gap-2">
-                    <Package className="w-4 h-4" />
-                    Nominativo Mittente (opzionale)
+                  <label className="text-xs sm:text-sm font-semibold mb-2 sm:mb-3 block text-gray-700 flex items-center gap-2">
+                    <Package className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Nominativo Mittente (opzionale)</span>
+                    <span className="sm:hidden">Mittente</span>
                   </label>
                   <Input
                     type="text"
                     value={nominativoMittente}
                     onChange={(e) => setNominativoMittente(e.target.value)}
                     placeholder="Es. Mario Rossi"
-                    className="h-12 border-2 border-gray-200 hover:border-orange-400 transition-colors text-lg"
+                    className="h-10 sm:h-12 border-2 border-gray-200 hover:border-orange-400 transition-colors text-base sm:text-lg"
                   />
                 </div>
 

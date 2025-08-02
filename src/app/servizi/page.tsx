@@ -307,37 +307,45 @@ export default function ServiziPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <Button variant="outline" size="icon" className="hover:scale-105 transition-transform">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/impostazioni">
-              <Button variant="outline" size="icon" className="hover:scale-105 transition-transform">
-                <Settings className="h-4 w-4" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-4xl font-bold text-blue-900">
-                Servizi Postali
-              </h1>
-              <div className="flex items-center gap-3 mt-1">
-                <p className="text-gray-600">Gestione avanzata servizi postali</p>
-                {currentSede && (
-                  <div className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-medium">
-                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                    <span>📍 {currentSede.nome}</span>
-                  </div>
-                )}
-              </div>
+        <div className="flex flex-col gap-4 mb-6 sm:mb-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <Link href="/">
+                <Button variant="outline" size="icon" className="h-8 w-8 sm:h-10 sm:w-10 hover:scale-105 transition-transform">
+                  <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+                </Button>
+              </Link>
+              <Link href="/impostazioni">
+                <Button variant="outline" size="icon" className="h-8 w-8 sm:h-10 sm:w-10 hover:scale-105 transition-transform">
+                  <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+                </Button>
+              </Link>
+            </div>
+            
+            <div className="flex md:hidden items-center gap-2 bg-white rounded-lg px-3 py-2 border border-gray-200">
+              <Clock className="w-4 h-4 text-blue-500" />
+              <span className="font-semibold text-gray-800 text-sm">{currentShift}</span>
             </div>
           </div>
           
-          <div className="hidden md:flex items-center gap-4 bg-white rounded-lg px-6 py-3 border border-gray-200">
+          <div className="text-center sm:text-left">
+            <h1 className="text-2xl sm:text-4xl font-bold text-blue-900">
+              Servizi Postali
+            </h1>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mt-1">
+              <p className="text-sm sm:text-base text-gray-600">Gestione avanzata servizi postali</p>
+              {currentSede && (
+                <div className="flex items-center justify-center sm:justify-start gap-2 bg-blue-600 text-white px-3 py-1 rounded-lg text-xs sm:text-sm font-medium">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  <span>📍 {currentSede.nome}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="hidden md:flex items-center gap-4 bg-white rounded-lg px-6 py-3 border border-gray-200 self-end">
             <Clock className="w-5 h-5 text-blue-500" />
             <span className="font-semibold text-gray-800">{currentShift}</span>
             <span className="text-gray-500 text-sm">({shiftTime})</span>
@@ -345,56 +353,56 @@ export default function ServiziPage() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
           <Card className="bg-white border border-gray-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm font-medium">Entrate Oggi</p>
-                  <p className="text-2xl font-bold text-blue-900">{formatCurrency(totaleGiornata.entrate)}</p>
+                  <p className="text-gray-600 text-xs sm:text-sm font-medium">Entrate Oggi</p>
+                  <p className="text-lg sm:text-2xl font-bold text-blue-900">{formatCurrency(totaleGiornata.entrate)}</p>
                 </div>
-                <TrendingUp className="w-6 h-6 text-yellow-500" />
+                <TrendingUp className="w-4 h-4 sm:w-6 sm:h-6 text-yellow-500" />
               </div>
             </CardContent>
           </Card>
           
           <Card className="bg-white border border-gray-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm font-medium">Guadagno</p>
-                  <p className="text-2xl font-bold text-blue-900">{formatCurrency(totaleGiornata.guadagni)}</p>
+                  <p className="text-gray-600 text-xs sm:text-sm font-medium">Guadagno</p>
+                  <p className="text-lg sm:text-2xl font-bold text-blue-900">{formatCurrency(totaleGiornata.guadagni)}</p>
                 </div>
-                <Star className="w-6 h-6 text-yellow-500" />
+                <Star className="w-4 h-4 sm:w-6 sm:h-6 text-yellow-500" />
               </div>
             </CardContent>
           </Card>
           
           <Card className="bg-white border border-gray-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm font-medium">Servizi</p>
-                  <p className="text-2xl font-bold text-blue-900">{serviziEffettuati.length}</p>
+                  <p className="text-gray-600 text-xs sm:text-sm font-medium">Servizi</p>
+                  <p className="text-lg sm:text-2xl font-bold text-blue-900">{serviziEffettuati.length}</p>
                 </div>
-                <Activity className="w-6 h-6 text-yellow-500" />
+                <Activity className="w-4 h-4 sm:w-6 sm:h-6 text-yellow-500" />
               </div>
             </CardContent>
           </Card>
           
           <Card className="bg-white border border-gray-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm font-medium">Margine</p>
-                  <p className="text-2xl font-bold text-blue-900">
+                  <p className="text-gray-600 text-xs sm:text-sm font-medium">Margine</p>
+                  <p className="text-lg sm:text-2xl font-bold text-blue-900">
                     {totaleGiornata.entrate > 0 ? 
                        `${((totaleGiornata.guadagni / totaleGiornata.entrate) * 100).toFixed(1)}%` : 
                        "0%"
                      }
                   </p>
                 </div>
-                <Activity className="w-6 h-6 text-yellow-500" />
+                <Activity className="w-4 h-4 sm:w-6 sm:h-6 text-yellow-500" />
               </div>
             </CardContent>
           </Card>
