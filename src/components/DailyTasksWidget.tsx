@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { Clock, Calendar, CheckCircle, AlertCircle, X, ChevronRight, ListTodo } from 'lucide-react'
+import { Clock, Calendar, CheckCircle, AlertCircle, X, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
 // Definizione dei tipi

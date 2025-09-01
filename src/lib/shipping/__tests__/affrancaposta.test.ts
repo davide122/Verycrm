@@ -42,7 +42,7 @@ function runTests() {
           throw new Error('Expected a function that throws');
         }
         try {
-          (actual as Function)();
+          (actual as () => void)();
           throw new Error('Expected function to throw, but it did not');
         } catch (error) {
           if (expectedError === QuoteError && !(error instanceof QuoteError)) {
@@ -197,7 +197,7 @@ function runTests() {
       product: 'POSTA1_PRO',
       destination: { type: 'ITALY' },
       weightGrams: 20,
-      format: 'NORMALIZZATO' as any
+      format: 'NORMALIZZATO' as never
     };
     
     expect(() => quote(input)).toThrow(QuoteError);

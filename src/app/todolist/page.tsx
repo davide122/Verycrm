@@ -377,8 +377,7 @@ export default function TodoList() {
   const [showForm, setShowForm] = useState(false)
   const [viewMode, setViewMode] = useState<'board' | 'calendar'>('board')
   
-  // Riferimento per il calendario
-  const calendarRef = useRef<HTMLDivElement>(null)
+  // Riferimento per il calendario rimosso (non utilizzato)
   const [filtroStato, setFiltroStato] = useState<string>('tutti')
   const [filtroPriorita, setFiltroPriorita] = useState<string>('tutti')
 
@@ -535,7 +534,7 @@ export default function TodoList() {
       })
       
       return grouped
-    }, [tasks])
+    }, [])
     
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -635,7 +634,7 @@ export default function TodoList() {
     if (currentSede) {
       caricaTasks()
     }
-  }, [currentSede, dataSelezionata])
+  }, [currentSede, dataSelezionata, caricaTasks])
 
   // Questa funzione è stata rimossa perché duplicata
 
@@ -645,40 +644,13 @@ export default function TodoList() {
 
   // Questa funzione è stata rimossa perché duplicata
 
-  // Funzione per ottenere il colore in base alla priorità
-  const getColorePriorita = (priorita: number) => {
-    switch (priorita) {
-      case 0: return 'bg-gray-100 text-gray-700'
-      case 1: return 'bg-yellow-100 text-yellow-700'
-      case 2: return 'bg-red-100 text-red-700'
-      default: return 'bg-gray-100 text-gray-700'
-    }
-  }
+  // Funzione getColorePriorita rimossa (non utilizzata)
 
-  // Funzione per ottenere l'icona in base allo stato
-  const getIconaStato = (stato: StatoTask) => {
-    switch (stato) {
-      case 'DA_FARE': return <AlertCircle className="w-5 h-5 text-gray-500" />
-      case 'IN_CORSO': return <Clock className="w-5 h-5 text-blue-500" />
-      case 'COMPLETATO': return <CheckCircle className="w-5 h-5 text-green-500" />
-      case 'ANNULLATO': return <Trash2 className="w-5 h-5 text-red-500" />
-      default: return <AlertCircle className="w-5 h-5 text-gray-500" />
-    }
-  }
+  // Funzione getIconaStato rimossa (non utilizzata)
 
-  // Funzione per formattare la data
-  const formattaData = (dataString?: string) => {
-    if (!dataString) return ''
-    const data = new Date(dataString)
-    return data.toLocaleDateString('it-IT')
-  }
+  // Funzione formattaData rimossa (non utilizzata)
 
-  // Funzione per formattare l'orario
-  const formattaOrario = (orarioString?: string) => {
-    if (!orarioString) return ''
-    const orario = new Date(orarioString)
-    return orario.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
-  }
+  // Funzione formattaOrario rimossa (non utilizzata)
 
   if (isLoading) {
     return (

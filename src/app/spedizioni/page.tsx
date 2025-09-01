@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -55,11 +55,34 @@ export default function SpedizioniPage() {
     varie: number;
   } | null>(null)
 
+  const fetchSpedizioni = useCallback(async () => {
+    try {
+      // Verifica che currentSede sia valido prima di fare la chiamata
+      if (!currentSede?.id) {
+        console.warn('Sede non valida, non carico spedizioni')
+        setSpedizioni([])
+        return
+      }
+
+      const response = await fetch(`/api/spedizioni?sede=${currentSede.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setSpedizioni(data)
+      } else {
+        console.error('Errore nel caricamento delle spedizioni')
+        setSpedizioni([])
+      }
+    } catch (error) {
+      console.error('Errore nel caricamento delle spedizioni:', error)
+      setSpedizioni([])
+    }
+  }, [currentSede])
+
   useEffect(() => {
     if (currentSede) {
       fetchSpedizioni()
     }
-  }, [currentSede])
+  }, [currentSede, fetchSpedizioni])
 
   useEffect(() => {
     if (peso) {
@@ -75,33 +98,7 @@ export default function SpedizioniPage() {
     }
   }, [peso, pellicola, imballaggio, quantitaPellicole, quantitaImballaggi])
 
-  const fetchSpedizioni = async () => {
-    try {
-      // Verifica che currentSede sia valido prima di fare la chiamata
-      if (!currentSede?.id) {
-        console.warn('Sede non valida, non carico spedizioni')
-        setSpedizioni([])
-        return
-      }
-
-      const today = new Date().toISOString().split('T')[0]
-      const response = await fetch(`/api/spedizioni?data=${today}&sede=${currentSede.id}`)
-      
-      if (response.ok) {
-        const spedizioniData = await response.json()
-        // Filtraggio aggiuntivo lato client per sicurezza
-        const spedizioniFiltrate = spedizioniData.filter((spedizione: Spedizione) => 
-          spedizione.sede === currentSede.id
-        )
-        setSpedizioni(spedizioniFiltrate)
-      } else {
-        setSpedizioni([])
-      }
-    } catch (error) {
-      console.error('Errore nel caricamento delle spedizioni:', error)
-      setSpedizioni([])
-    }
-  }
+  // Funzione fetchSpedizioni rimossa (duplicata)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -127,7 +124,7 @@ export default function SpedizioniPage() {
       })
 
       if (response.ok) {
-        const nuovaSpedizione = await response.json()
+        await response.json()
         // Ricarica le spedizioni dal database per assicurare sincronizzazione
         await fetchSpedizioni()
         setPeso('')

@@ -285,10 +285,12 @@ export function quote(input: QuoteInput): QuoteOutput {
 }
 
 // Export default
-export default {
+const affrancapostaModule = {
   quote,
   isFormatAllowed,
   resolveZone,
   findWeightBracket,
   QuoteError
 };
+
+export default affrancapostaModule;
