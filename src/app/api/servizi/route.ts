@@ -19,7 +19,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { nome, prezzoCliente, costoNetto, ivaPercent = 22 } = body
+    const { nome, prezzoCliente, costoNetto, ivaPercent = 0 } = body
 
     if (!nome || prezzoCliente === undefined || prezzoCliente === null || costoNetto === undefined || costoNetto === null) {
       return NextResponse.json(

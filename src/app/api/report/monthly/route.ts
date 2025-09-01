@@ -219,6 +219,21 @@ export async function GET(request: NextRequest) {
       giornoData.totaliGiorno.operazioni += 1
     })
 
+    // Calcola rimborsi SPID mensili - include IVA 22%
+    const spidServiceIds = [14, 15] // SPID NAMIRIAL e Recupero spid
+    const rimborsiSpidMensili = servizi
+      .filter(servizio => spidServiceIds.includes(servizio.servizioId))
+      .reduce((acc, servizio) => {
+        // Per SPID: costoTotale + IVA 22% = costoTotale * 1.22
+        const costoConIva = servizio.costoTotale * 1.22
+        return acc + (costoConIva * servizio.quantita)
+      }, 0)
+
+    // Calcola rimborsi spedizioni mensili (Fabio Busta)
+    const rimborsiSpedizioniMensili = spedizioni.reduce((acc, spedizione) => {
+      return acc + spedizione.rimborsoSpese
+    }, 0)
+
     const giorniArray = Array.from(giorniMap.values()).sort((a, b) => a.data.localeCompare(b.data))
 
     const reportData = {
@@ -241,6 +256,11 @@ export async function GET(request: NextRequest) {
           contanti: pagamentiServizi.contanti + pagamentiSpedizioni.contanti,
           pos: pagamentiServizi.pos + pagamentiSpedizioni.pos
         }
+      },
+      speseOperative: {
+        fabioBusta: rimborsiSpedizioniMensili,
+        spidBusta: rimborsiSpidMensili,
+        totale: rimborsiSpedizioniMensili + rimborsiSpidMensili
       }
     }
 

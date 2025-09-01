@@ -33,7 +33,7 @@ export default function ImpostazioniPage() {
     nome: '',
     prezzoCliente: '',
     costoNetto: '',
-    ivaPercent: '22'
+    ivaPercent: '0'
   })
 
   useEffect(() => {
@@ -74,7 +74,7 @@ export default function ImpostazioniPage() {
       if (response.ok) {
         const servizioCreato = await response.json()
         setServizi([...servizi, servizioCreato])
-        setNuovoServizio({ nome: '', prezzoCliente: '', costoNetto: '', ivaPercent: '22' })
+        setNuovoServizio({ nome: '', prezzoCliente: '', costoNetto: '', ivaPercent: '0' })
         setShowAddForm(false)
         alert('Servizio aggiunto con successo!')
       } else {

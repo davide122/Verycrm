@@ -106,6 +106,16 @@ export async function GET(request: NextRequest) {
       0
     )
 
+    // Calcola rimborsi SPID (servizi con ID 14 e 15) - include IVA 22%
+    const spidServiceIds = [14, 15] // SPID NAMIRIAL e Recupero spid
+    const rimborsiSpid = serviziEffettuati
+      .filter(servizio => spidServiceIds.includes(servizio.servizioId))
+      .reduce((acc: number, servizio) => {
+        // Per SPID: costoTotale + IVA 22% = costoTotale * 1.22
+        const costoConIva = servizio.costoTotale * 1.22
+        return acc + (costoConIva * servizio.quantita)
+      }, 0)
+
     // Totali complessivi
     const totali = {
       entrate: totaliServizi.entrate + totaliSpedizioni.entrate,
@@ -133,7 +143,8 @@ export async function GET(request: NextRequest) {
       },
       speseOperative: {
         fabioBusta: speseOperative,
-        descrizione: "Spese operative per rimborsi spedizioni Poste Italiane"
+        spidBusta: rimborsiSpid,
+        descrizione: "Spese operative per rimborsi spedizioni Poste Italiane e servizi SPID"
       }
     }
 

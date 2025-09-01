@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSede } from '@/hooks/useSede'
-import { Building2, MapPin, LogOut, RefreshCw, Sparkles, Menu, X, CheckSquare, Package, FileText, BarChart3 } from 'lucide-react'
+import { Building2, MapPin, LogOut, RefreshCw, Sparkles, Menu, X, CheckSquare, Package, FileText, BarChart3, Calculator } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -35,6 +35,7 @@ export default function Navbar() {
   const navigationLinks = [
     { href: '/servizi', label: 'Servizi', icon: FileText },
     { href: '/spedizioni', label: 'Spedizioni', icon: Package },
+    { href: '/calcolatore-tariffe', label: 'Tariffe', icon: Calculator },
     { href: '/todolist', label: 'TodoList', icon: CheckSquare },
     { href: '/dashboard', label: 'Dashboard', icon: BarChart3 }
   ]

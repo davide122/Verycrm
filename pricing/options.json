@@ -1,0 +1,13 @@
+{
+  "AR": {
+    "description": "Avviso di Ricevimento",
+    "cents": null,
+    "note": "Importo da configurare - non presente nel listino base"
+  },
+  "PROVA_DI_CONSEGNA": {
+    "description": "Prova di Consegna",
+    "cents": null,
+    "note": "Importo da configurare - disponibile solo per prodotti specifici",
+    "supportedProducts": ["RACCOMANDATA_PRO", "RACCOMANDATA_INTL"]
+  }
+}

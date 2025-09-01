@@ -12,7 +12,7 @@ model Servizio {
   nome          String
   prezzoCliente Float
   costoNetto    Float
-  ivaPercent    Float                @default(22)
+  ivaPercent    Float                @default(0)
   operazioni    ServizioEffettuato[]
 }
 

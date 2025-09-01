@@ -32,7 +32,8 @@ import {
   CheckCircle,
   AlertCircle,
   ListTodo,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Calculator
 } from 'lucide-react'
 import { formatCurrency, formatDate, getTurnoCorrente } from '@/lib/utils'
 import { useSede } from '@/hooks/useSede'
@@ -114,6 +115,7 @@ interface RiepilogoData {
   }
   speseOperative: {
     fabioBusta: number
+    spidBusta: number
     descrizione: string
   }
 }
@@ -126,6 +128,12 @@ export default function DashboardPage() {
   const [selectedTurno, setSelectedTurno] = useState<string>('all')
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().substring(0, 7))
   const [loading, setLoading] = useState(false)
+  const [contantiTotali, setContantiTotali] = useState('')
+  
+  // Calcolo differenza contanti (quello che dovrebbe avere vs quello che ha effettivamente)
+  const contantiCalcolati = riepilogo?.pagamenti?.totaliContanti || 0
+  const contantiEffettivi = parseFloat(contantiTotali || '0')
+  const differenzaContanti = contantiEffettivi - contantiCalcolati
 
   const downloadMonthlyCSV = async () => {
     if (!currentSede) return
@@ -990,8 +998,223 @@ export default function DashboardPage() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Spese Operative SPID Busta */}
+                <Card className="bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <CardHeader className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-t-lg">
+                    <CardTitle className="flex items-center gap-3 text-xl">
+                      <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                        <Zap className="h-6 w-6" />
+                      </div>
+                      SPID Busta
+                    </CardTitle>
+                    <CardDescription className="text-purple-100">
+                      🆔 Rimborsi servizi SPID
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div className="bg-white rounded-xl p-4 border border-purple-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Zap className="w-5 h-5 text-purple-600" />
+                          <span className="text-sm font-medium text-purple-700">Servizi SPID</span>
+                        </div>
+                        <p className="text-sm text-purple-600 mb-2">
+                          Rimborsi per servizi SPID NAMIRIAL e Recupero SPID
+                        </p>
+                        <p className="text-2xl font-bold text-purple-800">
+                          {formatCurrency(riepilogo.speseOperative.spidBusta)}
+                        </p>
+                      </div>
+                      
+                      <div className="bg-gradient-to-r from-purple-100 to-indigo-100 rounded-xl p-4 border-2 border-purple-300">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-bold text-purple-800">TOTALE SPID</span>
+                          <Zap className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <p className="text-3xl font-bold text-purple-900">
+                          {formatCurrency(riepilogo.speseOperative.spidBusta)}
+                        </p>
+                        <p className="text-xs text-purple-700 mt-2">
+                          Costi servizi identità digitale
+                        </p>
+                      </div>
+                      
+                      <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span className="text-xs font-medium text-blue-700">
+                            Spese da rimborsare per servizi SPID
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
+
+            {/* Controllo Saldo Drop */}
+            <Card className="mt-8 bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+              <CardHeader className="bg-gradient-to-r from-emerald-600 to-green-700 text-white rounded-t-lg">
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <Wallet className="h-6 w-6" />
+                  </div>
+                  Controllo Saldo Drop
+                </CardTitle>
+                <CardDescription className="text-emerald-100">
+                  💰 Verifica saldo drop con calcolo automatico contanti
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Input Contanti Totali */}
+                   <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-6 border border-emerald-200">
+                     <div className="flex items-center gap-3 mb-4">
+                       <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
+                         <Banknote className="w-5 h-5 text-white" />
+                       </div>
+                       <div>
+                         <p className="text-sm font-semibold text-emerald-700">Contanti Totali</p>
+                         <p className="text-xs text-emerald-600">Inserisci i contanti che hai fisicamente</p>
+                       </div>
+                     </div>
+                     <Input
+                       type="number"
+                       step="0.01"
+                       placeholder="0.00"
+                       value={contantiTotali}
+                       onChange={(e) => setContantiTotali(e.target.value)}
+                       className="text-lg font-bold text-emerald-800 bg-white border-emerald-300 focus:border-emerald-500"
+                     />
+                   </div>
+
+                  {/* Contanti Calcolati dal Sistema */}
+                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+                     <div className="flex items-center gap-3 mb-4">
+                       <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                         <Calculator className="w-5 h-5 text-white" />
+                       </div>
+                       <div>
+                         <p className="text-sm font-semibold text-blue-700">Contanti Calcolati</p>
+                         <p className="text-xs text-blue-600">Quello che dovresti avere</p>
+                       </div>
+                     </div>
+                     <p className="text-2xl font-bold text-blue-800">
+                       {formatCurrency(contantiCalcolati)}
+                     </p>
+                     <div className="mt-3 space-y-1">
+                       <div className="flex justify-between text-xs">
+                         <span className="text-blue-600">Servizi:</span>
+                         <span className="font-medium text-blue-700">
+                           {formatCurrency(riepilogo?.pagamenti?.servizi?.contanti || 0)}
+                         </span>
+                       </div>
+                       <div className="flex justify-between text-xs">
+                         <span className="text-blue-600">Spedizioni:</span>
+                         <span className="font-medium text-blue-700">
+                           {formatCurrency(riepilogo?.pagamenti?.spedizioni?.contanti || 0)}
+                         </span>
+                       </div>
+                     </div>
+                   </div>
+                </div>
+
+                {/* Risultato Controllo Contanti */}
+                 <div className="mt-6">
+                   <div className={`rounded-xl p-6 border-2 transition-all duration-300 ${
+                     Math.abs(differenzaContanti) < 0.01
+                       ? 'bg-gradient-to-r from-green-100 to-emerald-100 border-green-400' 
+                       : 'bg-gradient-to-r from-red-100 to-pink-100 border-red-400'
+                   }`}>
+                     <div className="flex items-center justify-between mb-4">
+                       <div className="flex items-center gap-3">
+                         <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                           Math.abs(differenzaContanti) < 0.01
+                             ? 'bg-green-500'
+                             : 'bg-red-500'
+                         }`}>
+                           {Math.abs(differenzaContanti) < 0.01 ? (
+                             <CheckCircle className="w-6 h-6 text-white" />
+                           ) : (
+                             <AlertCircle className="w-6 h-6 text-white" />
+                           )}
+                         </div>
+                         <div>
+                           <p className={`text-lg font-bold ${
+                             Math.abs(differenzaContanti) < 0.01
+                               ? 'text-green-800'
+                               : 'text-red-800'
+                           }`}>
+                             Controllo Contanti
+                           </p>
+                           <p className={`text-sm ${
+                             Math.abs(differenzaContanti) < 0.01
+                               ? 'text-green-600'
+                               : 'text-red-600'
+                           }`}>
+                             {Math.abs(differenzaContanti) < 0.01
+                               ? '✅ Contanti corretti!'
+                               : differenzaContanti > 0 
+                                 ? '📈 Hai più contanti del previsto'
+                                 : '📉 Ti mancano dei contanti'
+                             }
+                           </p>
+                         </div>
+                       </div>
+                       <div className="text-right">
+                         <p className={`text-3xl font-bold ${
+                           Math.abs(differenzaContanti) < 0.01
+                             ? 'text-green-900'
+                             : differenzaContanti > 0
+                               ? 'text-blue-900'
+                               : 'text-red-900'
+                         }`}>
+                           {differenzaContanti >= 0 ? '+' : ''}{formatCurrency(differenzaContanti)}
+                         </p>
+                         <p className={`text-sm mt-1 ${
+                           Math.abs(differenzaContanti) < 0.01
+                             ? 'text-green-700'
+                             : 'text-gray-700'
+                         }`}>
+                           Differenza
+                         </p>
+                       </div>
+                     </div>
+                     
+                     <div className="bg-white/50 rounded-lg p-4">
+                       <div className="grid grid-cols-3 gap-4 text-center">
+                         <div>
+                           <p className="text-xs text-gray-600 mb-1">Contanti Effettivi</p>
+                           <p className="font-bold text-gray-800">
+                             {formatCurrency(contantiEffettivi)}
+                           </p>
+                         </div>
+                         <div>
+                           <p className="text-xs text-gray-600 mb-1">Contanti Calcolati</p>
+                           <p className="font-bold text-blue-600">
+                             {formatCurrency(contantiCalcolati)}
+                           </p>
+                         </div>
+                         <div>
+                           <p className="text-xs text-gray-600 mb-1">Differenza</p>
+                           <p className={`font-bold ${
+                             Math.abs(differenzaContanti) < 0.01
+                               ? 'text-green-600'
+                               : differenzaContanti > 0
+                                 ? 'text-blue-600'
+                                 : 'text-red-600'
+                           }`}>
+                             {differenzaContanti >= 0 ? '+' : ''}{formatCurrency(differenzaContanti)}
+                           </p>
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+              </CardContent>
+            </Card>
 
             {/* Intelligence Center */}
             <Card className="mt-8 bg-white/90 backdrop-blur-sm border-0 shadow-xl">

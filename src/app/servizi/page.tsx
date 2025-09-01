@@ -169,7 +169,7 @@ export default function ServiziPage() {
           nome: serviceName,
           prezzoCliente: parseFloat(newServicePrice),
           costoNetto: parseFloat(newServiceCost),
-          ivaPercent: 22
+          ivaPercent: 0
         })
       })
 
